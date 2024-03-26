@@ -1,0 +1,358 @@
+from edge import Edge
+from node import Node
+from djkNode import DjkNode
+from aStarNode import AStarNode
+import math
+
+
+#Graf buduje się właściwie
+def buildGraphFromCSV(csvFileName):
+    graph=[dict(),[]]
+    normalizedGraph=dict()
+
+    with open(csvFileName) as file:
+    # for i in range(1000):
+    #     print(file.readline())
+        count=0 #test
+        for dataLine in file:
+            count=count+1 #test
+            #print(count)
+
+            dataLine=dataLine.split(',')
+            if dataLine[0]!='':
+                start_node = Node(dataLine[5], float(dataLine[7]), float(dataLine[8]))
+                # if (dataLine[5]=='Siedlec - skrzy. Osiedlowa'):
+                #     print(dataLine)
+                end_node = Node(dataLine[6], float(dataLine[9]), float(dataLine[10]))
+                edge = Edge(
+                    dataLine[0],
+                    dataLine[1],
+                    dataLine[2],
+                    validateTime(dataLine[3]),
+                    validateTime(dataLine[4]),
+                    start_node,
+                    end_node
+                )
+
+                # id = dataLine[0]
+                # company = dataLine[1]
+                # line = dataLine[2]
+                # departure_time = dataLine[3]
+                # arrival_time = dataLine[4]
+                # start_node = Node(dataLine[5], dataLine[7], dataLine[8])
+                # end_node = Node(dataLine[6], dataLine[9], dataLine[10])
+
+                #here if true, we need to correct data
+                # departure_time = correctTime(departure_time)
+                # arrival_time = correctTime(arrival_time)
+                #printDataLine([id, company, line, departure_time, arrival_time, start_node, end_node])
+
+                #print(edge)
+                graph[1].append(edge)
+
+                if(not (f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}' in graph[0])):
+                    graph[0][f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}']=start_node
+
+                if(not (f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}' in graph[0])):
+                    graph[0][f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}']=end_node
+
+                #add to normalized graph to get average location of stop
+                    #ta funkcja jest sprawdzona i wykonuje się właściwie
+                    normalizedGraph = addToNormalizedGraph(edge, normalizedGraph)
+                    #normalizedGraph = addToNormalizedGraph(end_node, start_node, normalizedGraph)
+
+                #if(count==5):
+                    #break
+        #ta część też wykonuje się właściwie
+        #for every stop name
+        #count=0
+        for key in normalizedGraph:
+            #count+=1
+
+            averageLon=0 #x
+            averageLat=0 #y
+            #we take average lat and lon
+            for node in normalizedGraph[key]['nodes']:
+                averageLon+=node._stop_lon()
+                averageLat+=node._stop_lat()
+            averageLon/=len(normalizedGraph[key]['nodes'])
+            averageLat/=len(normalizedGraph[key]['nodes'])
+            normalizedGraph[key]['averageLon']=averageLon
+            normalizedGraph[key]['averageLat']=averageLat
+
+            #print(normalizedGraph[key])
+            # if count==5:
+            #     break
+
+    return normalizedGraph
+
+def validateTime(time):
+        time=time.split(':')
+        time[0]=int(time[0])
+        if(time[0]>=24):
+            time[0]=str(time[0]%24)
+            if(len(time[0])==1):
+                time[0]=f'0{time[0]}'
+        return f'{time[0]}:{time[1]}:{time[2]}'
+
+def addToNormalizedGraph(edge, normalizedGraph):
+    if(not(edge._start_node()._stop_name() in normalizedGraph)):
+        #print(edge._start_node()._stop_name())
+        #print(normalizedGraph[0])
+        normalizedGraph[edge._start_node()._stop_name()]={
+            'nodes': [edge._start_node()],
+            #'edges': {edge._end_node()._stop_name(): [edge._end_node()._time_diff(), edge._end_node()._distance()]}
+            'edges': [edge],
+            'neighbours': set([edge._end_node()._stop_name()]),
+            'name': edge._start_node()._stop_name(),
+            #nowe:
+            'f': None,
+            'g':None,
+            'h':None
+            }
+    else:
+        #jeżeli tego konkretnego węzła nie ma w zbiorze węzłów, to go dodajemy
+        if(edge._start_node() not in normalizedGraph[edge._start_node()._stop_name()]['nodes']):
+            normalizedGraph[edge._start_node()._stop_name()]['nodes'].append(edge._start_node())
+        #normalizedGraph[1][node.stop_name()]['edges'].add(nodeTo.stop_name())
+        #krawędź dodajemy tak czy owak, ponieważ każda jest unikalna
+        normalizedGraph[edge._start_node()._stop_name()]['edges'].append(edge)
+        #jeżeli tego konkretnego węzła nie ma w zbiorze sąsiadów, to zostanie dodany
+        normalizedGraph[edge._start_node()._stop_name()]['neighbours'].add(edge._end_node()._stop_name())
+        if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa'):
+            print(f'Koniec: {edge._end_node()._stop_name()}, czy dodany: {edge._end_node()._stop_name() in normalizedGraph[edge._start_node()._stop_name()]["neighbours"]}')
+        
+    return addEndNodeToNormalizedGraph(edge._end_node(),normalizedGraph)
+
+def addEndNodeToNormalizedGraph(end_node, normalizedGraph):
+    if(not(end_node._stop_name() in normalizedGraph)):
+        #print(edge._start_node()._stop_name())
+        #print(normalizedGraph[0])
+        normalizedGraph[end_node._stop_name()]={
+            'nodes': [end_node],
+            #'edges': {edge._end_node()._stop_name(): [edge._end_node()._time_diff(), edge._end_node()._distance()]}
+            'edges': [],
+            'neighbours': set(),
+            'name': end_node._stop_name(),
+            #nowe:
+            'f': None,
+            'g':None,
+            'h':None
+            }
+    else:
+        #jeżeli tego konkretnego węzła nie ma w liście węzłów, to go dodajemy
+        if(end_node not in normalizedGraph[end_node._stop_name()]['nodes']):
+            normalizedGraph[end_node._stop_name()]['nodes'].append(end_node)
+        #normalizedGraph[1][node.stop_name()]['edges'].add(nodeTo.stop_name())
+        
+    return normalizedGraph
+
+
+# def addNodeToGraph(graph, node):
+#     if(not (node._stop_name() in graph)):
+#         graph[node._stop_name()]=node
+
+# def correctTime(time):
+#     if(time.find('24')==0):
+#                 return correctData(time)
+#     else
+
+# def correctData(hour):
+#     hour=hour.split(':')
+#     hour[0]='00'
+#     return f'{hour[0]}:{hour[1]}:{hour[2]}'
+            
+# def printDataLine(data):
+#     print(f'id: {data[0]}, company: {data[1]}, line: {data[2]}, departure time: {data[3]}, arrival time: {data[4]}, start node: {data[5]}, end node {data[6]}')
+
+
+######
+
+def djikstraAlg(source, nodes):
+    djkSource= DjkNode(getNodeFromNodes(source, nodes), 0)
+    djkNodes = dict()
+
+    #add d value to nodes
+    for node in nodes:
+        if(node._stop_name != source):
+            djkNodes[node._stop_name] = DjkNode(node)
+        else:
+            djkNodes[source] == djkSource
+
+
+
+def getNodeFromNodes(searched_node_name, nodes):
+    if searched_node_name in nodes:
+        return nodes[searched_node_name]
+    
+#nowa wersja
+def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
+
+    list_open=[]
+    list_closed=[]
+
+    start['g']=0
+    start['h']=0
+    start['f']=start['g']+start['h']
+
+
+    list_open=[start]
+
+    while len(list_open) > 0:
+        node = None #to będzie znormalizowany węzeł
+        node_cost=float('inf')
+
+        for test_node in list_open:
+            if (test_node['f']<node_cost):
+                node = test_node
+                node_cost = test_node['f']
+        if node['name'] == end['name']:
+            print(f'Rozwiazanie:{list(map(lambda x: x["name"], list_closed))}')
+            print(f'otwarta lista:{list(map(lambda x: x["name"], list_open))}')
+            break
+
+        #TODO: be able to find this node
+        list_open.remove(node)
+        list_closed.append(node)
+
+        #tu się zaczynają problemy z sąsiadami, bo info o sąsiadach ma normalized graph, a tam nie ma AstarNodów
+        #tutaj node next ma być AStarNodem, tylko jak go utworzyć?
+        for node_next_name in node['neighbours']:
+            #szukam po nazwie, bo node_next nie jest AStarNodem
+            node_next_normalized_graph=graph[node_next_name]
+            if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
+                nnH=calculateHDistance(node_next_normalized_graph, end, graph)
+                #TODO: czy trzeba zrobić z czasem? Jak tak, to wtedy trzeba stworzyć calculate h time
+                nnG=node['g'] + getDistance(node, node_next_normalized_graph)
+                node_next_normalized_graph['h']=nnH
+                node_next_normalized_graph['g']=nnG
+                node_next_normalized_graph['f']=nnH + nnG
+                list_open.append(node_next_normalized_graph)
+            else:
+                if(node_next_normalized_graph['g']>node['g'] + getDistance(node,node_next_normalized_graph)):
+                    node_next_normalized_graph['g']=node['g'] +getDistance(node,node_next_normalized_graph)
+                    node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
+                    if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
+                        list_open.append(node_next_normalized_graph)
+                        list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
+    print(f'Lista zamknięta:{list(map(lambda x: x["name"], list_closed))}')
+    print(f'Lista otwarta:{list(map(lambda x: x["name"], list_open))}')
+    
+#poprzednia wersja
+#A*
+#problem do naprawienia-> możliwe, że wśród neighbours są przystanki o tych samych nazwach, a tak nie powinno być
+# def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
+
+#     list_open=[]
+#     list_closed=[]
+
+#     startG=0
+#     startH=0
+#     startNode=AStarNode(
+#         start['name'],
+#         start['averageLat'],
+#         start['averageLon'],
+#         startG+startH,
+#         startH,
+#         startG
+#     )
+
+#     list_open=[startNode]
+
+#     while len(list_open) > 0:
+#         node = None #to będzie znormalizowany węzeł
+#         node_cost=float('inf')
+
+#         for test_node in list_open:
+#             if test_node._f()<node_cost:
+#                 node = test_node
+#                 node_cost = test_node._f()
+#         if node._stop_name() == end['name']:
+#             print(f'Rozwiazanie:{list(map(lambda x: x._stop_name(), list_closed))}')
+#             print(f'otwarta lista:{list(map(lambda x: x._stop_name(), list_open))}')
+#             break
+
+#         #TODO: be able to find this node
+#         list_open.remove(node)
+#         list_closed.append(node)
+
+#         #tu się zaczynają problemy z sąsiadami, bo info o sąsiadach ma normalized graph, a tam nie ma AstarNodów
+#         #tutaj node next ma być AStarNodem, tylko jak go utworzyć?
+#         for node_next_name in graph[node._stop_name()]['neighbours']:
+#             #szukam po nazwie, bo node_next nie jest AStarNodem
+#             node_next_normalized_graph=graph[node_next_name]
+#             if node_next_name not in list(map(lambda x: x._stop_name(), list_open)) and node_next_name not in list(map(lambda x: x._stop_name(), list_closed)): #TODO: be able to fin this node
+#                 nnH=calculateHDistance(node_next_normalized_graph, end, graph)
+#                 #TODO: czy trzeba zrobić z czasem? Jak tak, to wtedy trzeba stworzyć calculate h time
+#                 nnG=node._g() + getDistance(graph[node._stop_name()], node_next_normalized_graph)
+#                 node_next=AStarNode(
+#                     node_next_normalized_graph['name'],
+#                     node_next_normalized_graph['averageLat'],
+#                     node_next_normalized_graph['averageLon'],
+#                     nnH+nnG,
+#                     nnH,
+#                     nnG
+#                 )
+
+#                 list_open.append(node_next)
+#             else:
+#                 if(node_next_name not in list(map(lambda x: x._stop_name(), list_open))):
+#                     node_next = getNodeFromList(node_next_name, list_closed)
+#                 else:
+#                     node_next = getNodeFromList(node_next_name, list_open)
+                    
+#                 if(node_next._g()>node._g() + getDistance(graph[node._stop_name()],node_next_normalized_graph)):
+#                     node_next.setG(node._g() +getDistance(graph[node._stop_name()],node_next_normalized_graph))
+#                     node_next.setF(node_next._g() + node_next._h())
+#                     if(node_next in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
+#                         list_open.append(node_next)
+#                         list_closed.remove(node_next) #TODO: trzeba móc odnaleźć noda
+
+def getNodeFromList(node_name, list):
+    for nn in list:
+        if nn._stop_name()==node_name:
+            return nn
+
+#Chcemy brać dystans, czy czas?
+def getDistance(node, node_next):
+    for edge in node['edges']:
+        if(edge._end_node()._stop_name()==node_next['name']):
+            return edge._distance()
+    print(f"Nie udalo się dla: {list(map(lambda x: x._end_node()._stop_name(), node['edges']))} i {node_next['name']}, a przystanek to {node['name']}")
+        
+# def getTime(node, node_next):
+#     for edge in node['edges']:
+#         if(edge._end_node()._stop_name()==node_next['normalizedNode']['name']):
+#             return edge._time_diff()
+
+def calculateHDistance(normalizedNodeFrom, normalizedNodeTo, graph):
+    return (math.sqrt((normalizedNodeFrom['averageLon'] - 
+            normalizedNodeTo['averageLon'])**2 + 
+            (normalizedNodeFrom['averageLat'] - 
+            normalizedNodeTo['averageLat'])**2))
+
+def calculateHTime(normalizedNodeFrom, normalizedNodeTo, graph):
+    #TODO: stwórz funkcję, konwertującą szerokość kątową na kilometry (żeby móc obliczyć przewidywany czas do celu)
+    mpkBusAvgVelocity=21.3
+    return (math.sqrt((normalizedNodeFrom['averageLon'] - 
+            normalizedNodeTo['averageLon'])**2 + 
+            (normalizedNodeFrom['averageLat'] - 
+            normalizedNodeTo['averageLat'])**2))
+
+    
+if __name__=='__main__':
+    normalizedGraph=buildGraphFromCSV('connection_graph.csv')
+    #print(normalizedGraph)
+    print(normalizedGraph['Siedlec - skrzy. Osiedlowa'])
+    while True:
+        start=input('Podaj przystanek początkowy:')
+        end=input('Podaj przystanek końcowy:')
+        try:
+            startNormalized=normalizedGraph[start]
+            endNormalized=normalizedGraph[end]
+            aStarAlg(startNormalized, endNormalized, normalizedGraph)
+        except KeyError:
+            print('Nieprawidłowe dane wejściowe')
+        option=input('Press "c" to continue or "s" to stop')
+        if(option=='s'):
+            break
