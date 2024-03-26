@@ -266,6 +266,7 @@ def calculateHTime(node_next_normalized_graph, end, graph):
             math.cos(node_next_normalized_graph['averageLat']) * math.cos(end['averageLat']) * 
             math.cos(end['averageLon'] - node_next_normalized_graph['averageLon']))*6371 / mpkBusAvgVelocity)/3600)
 
+#TODO: do poprawy to, że nie rozróżnia linii i może się przesiąść, nawet, jeżeli nie musi, bo czas będzie ten sam (np. z K przesiadam się do 144 i jadę do domu)
 #TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
 def getTimeDiff(node, node_next_normalized_graph, nodeFromTimeSeconds):
     nodeFromTime = secondsToHour(nodeFromTimeSeconds)
@@ -275,15 +276,37 @@ def getTimeDiff(node, node_next_normalized_graph, nodeFromTimeSeconds):
             if(edge._departure_time()==nodeFromTime):
                 return edge._time_diff()
             else:
-                if(edge._departure_time()>nodeFromTime):
-                    edgesInTheFuture.append(edge)
-    if(len(edgesInTheFuture)>0):
-        chosenEdgeArrTime=datetime.strptime(edgesInTheFuture[0]._arrival_time(), "%H:%M:%S").second #tutaj muszą być posortowane
-        return abs(chosenEdgeArrTime - nodeFromTimeSeconds)
+                edgesInTheFuture=addToSortedEdgesList(edge, edgesInTheFuture)
+    #wstawiłem ten powyższy wiersz
+    #             if(edge._departure_time()>nodeFromTime):
+    #                 edgesInTheFuture.append(edge)
+    # if(len(edgesInTheFuture)>0):
+    #     chosenEdgeArrTime=datetime.strptime(edgesInTheFuture[0]._arrival_time(), "%H:%M:%S").second #tutaj muszą być posortowane
+    #     return abs(chosenEdgeArrTime - nodeFromTimeSeconds)
+    #
+    # else:
+    #     #trzeba wybrać pierwszą, która się trafi (czyli np. następnego dnia)
+    #     pass
+    
+    chosenEdge = None
+    for edge in edgesInTheFuture:
+        if edge._departure_time()>nodeFromTime:
+            chosenEdge=edge
+            break
+    if chosenEdge==None:
+        chosenEdge=edgesInTheFuture[0]
+    chosenEdgeArrTime=datetime.strptime(chosenEdge._arrival_time(), "%H:%M:%S").second #tutaj muszą być posortowane
+    return abs(chosenEdgeArrTime - nodeFromTimeSeconds)
+    
 
-    else:
-        #trzeba wybrać pierwszą, która się trafi (czyli np. następnego dnia)
-        pass
+
+def addToSortedEdgesList(edge, edgesInTheFuture):
+    for i in range(len(edgesInTheFuture)):
+        if(edgesInTheFuture[i]._departure_time()>edge._departure_time()):
+            edgesInTheFuture.insert(i, edge)
+            return edgesInTheFuture
+    edgesInTheFuture.append(edge)
+    return edgesInTheFuture
         
 #IMP: kod z gemini
 def secondsToHour(seconds):
