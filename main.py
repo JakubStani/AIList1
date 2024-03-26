@@ -10,7 +10,7 @@ def buildGraphFromCSV(csvFileName):
     graph=[dict(),[]]
     normalizedGraph=dict()
 
-    with open(csvFileName) as file:
+    with open(csvFileName,  encoding="UTF-8") as file:
     # for i in range(1000):
     #     print(file.readline())
         count=0 #test
@@ -58,7 +58,7 @@ def buildGraphFromCSV(csvFileName):
 
                 #add to normalized graph to get average location of stop
                     #ta funkcja jest sprawdzona i wykonuje się właściwie
-                    normalizedGraph = addToNormalizedGraph(edge, normalizedGraph)
+                normalizedGraph = addToNormalizedGraph(edge, normalizedGraph)
                     #normalizedGraph = addToNormalizedGraph(end_node, start_node, normalizedGraph)
 
                 #if(count==5):
@@ -110,21 +110,27 @@ def addToNormalizedGraph(edge, normalizedGraph):
             'g':None,
             'h':None
             }
+        # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+        #         print('114')
     else:
         #jeżeli tego konkretnego węzła nie ma w zbiorze węzłów, to go dodajemy
         if(edge._start_node() not in normalizedGraph[edge._start_node()._stop_name()]['nodes']):
             normalizedGraph[edge._start_node()._stop_name()]['nodes'].append(edge._start_node())
+            # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+            #     print('120')
         #normalizedGraph[1][node.stop_name()]['edges'].add(nodeTo.stop_name())
         #krawędź dodajemy tak czy owak, ponieważ każda jest unikalna
         normalizedGraph[edge._start_node()._stop_name()]['edges'].append(edge)
         #jeżeli tego konkretnego węzła nie ma w zbiorze sąsiadów, to zostanie dodany
         normalizedGraph[edge._start_node()._stop_name()]['neighbours'].add(edge._end_node()._stop_name())
-        if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa'):
-            print(f'Koniec: {edge._end_node()._stop_name()}, czy dodany: {edge._end_node()._stop_name() in normalizedGraph[edge._start_node()._stop_name()]["neighbours"]}')
+        # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa'):
+        #     print(f'Koniec: {edge._end_node()._stop_name()}, czy dodany: {edge._end_node()._stop_name() in normalizedGraph[edge._start_node()._stop_name()]["neighbours"]}')
+        # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+        #         print('129')
         
-    return addEndNodeToNormalizedGraph(edge._end_node(),normalizedGraph)
+    return addEndNodeToNormalizedGraph(edge._end_node(),normalizedGraph, edge)
 
-def addEndNodeToNormalizedGraph(end_node, normalizedGraph):
+def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
     if(not(end_node._stop_name() in normalizedGraph)):
         #print(edge._start_node()._stop_name())
         #print(normalizedGraph[0])
@@ -137,12 +143,19 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph):
             #nowe:
             'f': None,
             'g':None,
-            'h':None
+            'h':None,
+            'parent':None,
             }
+        # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+        #         print('149')
     else:
         #jeżeli tego konkretnego węzła nie ma w liście węzłów, to go dodajemy
         if(end_node not in normalizedGraph[end_node._stop_name()]['nodes']):
             normalizedGraph[end_node._stop_name()]['nodes'].append(end_node)
+        #     if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+        #         print('155')
+        # if(edge._start_node()._stop_name()=='Siedlec - skrzy. Osiedlowa' and edge._end_node()._stop_name()=='Siedlec - stacja'):
+        #         print('157')
         #normalizedGraph[1][node.stop_name()]['edges'].add(nodeTo.stop_name())
         
     return normalizedGraph
@@ -207,8 +220,10 @@ def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
                 node = test_node
                 node_cost = test_node['f']
         if node['name'] == end['name']:
-            print(f'Rozwiazanie:{list(map(lambda x: x["name"], list_closed))}')
-            print(f'otwarta lista:{list(map(lambda x: x["name"], list_open))}')
+            #print(f'Rozwiazanie:{list(map(lambda x: x["name"], list_closed))}')
+            #print(f'otwarta lista:{list(map(lambda x: x["name"], list_open))}')
+            print('Rozwiązanie:')
+            printSolution(node)
             break
 
         #TODO: be able to find this node
@@ -227,17 +242,27 @@ def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
                 node_next_normalized_graph['h']=nnH
                 node_next_normalized_graph['g']=nnG
                 node_next_normalized_graph['f']=nnH + nnG
+                node_next_normalized_graph['parent']=node
                 list_open.append(node_next_normalized_graph)
             else:
                 if(node_next_normalized_graph['g']>node['g'] + getDistance(node,node_next_normalized_graph)):
                     node_next_normalized_graph['g']=node['g'] +getDistance(node,node_next_normalized_graph)
+                    node_next_normalized_graph['parent']=node
                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
                     if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
                         list_open.append(node_next_normalized_graph)
                         list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
-    print(f'Lista zamknięta:{list(map(lambda x: x["name"], list_closed))}')
-    print(f'Lista otwarta:{list(map(lambda x: x["name"], list_open))}')
+    #print(f'Lista zamknięta:{list(map(lambda x: x["name"], list_closed))}')
+    #print(f'Lista otwarta:{list(map(lambda x: x["name"], list_open))}')
     
+def printSolution(node):
+    if(node['parent']==None):
+        print(f'{node['name']}')
+    else:
+        printSolution(node['parent'])
+        print(f' -> {node['name']}')
+        
+
 #poprzednia wersja
 #A*
 #problem do naprawienia-> możliwe, że wśród neighbours są przystanki o tych samych nazwach, a tak nie powinno być
@@ -343,7 +368,7 @@ def calculateHTime(normalizedNodeFrom, normalizedNodeTo, graph):
 if __name__=='__main__':
     normalizedGraph=buildGraphFromCSV('connection_graph.csv')
     #print(normalizedGraph)
-    print(normalizedGraph['Siedlec - skrzy. Osiedlowa'])
+    #print(normalizedGraph['Siedlec - skrzy. Osiedlowa'])
     while True:
         start=input('Podaj przystanek początkowy:')
         end=input('Podaj przystanek końcowy:')
@@ -356,3 +381,9 @@ if __name__=='__main__':
         option=input('Press "c" to continue or "s" to stop')
         if(option=='s'):
             break
+        else:
+            for node in normalizedGraph:
+                normalizedGraph[node]['f']=None
+                normalizedGraph[node]['g']=None
+                normalizedGraph[node]['h']=None
+                normalizedGraph[node]['parent']=None
