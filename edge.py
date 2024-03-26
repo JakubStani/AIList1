@@ -13,7 +13,7 @@ class Edge:
         self.start_node = start_node
         self.end_node = end_node
 
-        #zerknąłem na czyjś kod (sprawdziłem, jakich funkcji użył do zamiany stringa na czas i czasu na sekundy)
+        #IMP: zerknąłem na czyjś kod (sprawdziłem, jakich funkcji użył do zamiany stringa na czas i czasu na sekundy)
         self.time_diff = (abs(datetime.strptime(self.arrival_time, '%H:%M:%S') - datetime.strptime(self.departure_time, '%H:%M:%S'))).total_seconds()
         self.distance = math.sqrt((float(start_node._stop_lat()) - float(end_node._stop_lat()))**2 + (float(start_node._stop_lon()) - float(end_node._stop_lon()))**2)
     def __str__(self):
@@ -38,4 +38,7 @@ class Edge:
     
     def _distance(self):
         return self.distance
+    
+    def _departure_time(self):
+        return self.departure_time
     

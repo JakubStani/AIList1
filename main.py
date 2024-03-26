@@ -3,6 +3,8 @@ from node import Node
 from djkNode import DjkNode
 from aStarNode import AStarNode
 import math
+from datetime import datetime
+import time
 
 
 #Graf buduje się właściwie
@@ -198,8 +200,9 @@ def getNodeFromNodes(searched_node_name, nodes):
     if searched_node_name in nodes:
         return nodes[searched_node_name]
     
-#nowa wersja
-def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
+mpkBusAvgVelocity=21.3
+#nowa wersja -> heurystyka to czas (i g też)
+def aStarAlg(start, end, graph, startTime): #start i end to znormalizowane węzły
 
     list_open=[]
     list_closed=[]
@@ -236,17 +239,17 @@ def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
             #szukam po nazwie, bo node_next nie jest AStarNodem
             node_next_normalized_graph=graph[node_next_name]
             if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
-                nnH=calculateHDistance(node_next_normalized_graph, end, graph)
+                nnH=calculateHTime(node_next_normalized_graph, end, graph)
                 #TODO: czy trzeba zrobić z czasem? Jak tak, to wtedy trzeba stworzyć calculate h time
-                nnG=node['g'] + getDistance(node, node_next_normalized_graph)
+                nnG=node['g'] + getTimeDiff(node, node_next_normalized_graph, node['g'])
                 node_next_normalized_graph['h']=nnH
                 node_next_normalized_graph['g']=nnG
                 node_next_normalized_graph['f']=nnH + nnG
                 node_next_normalized_graph['parent']=node
                 list_open.append(node_next_normalized_graph)
             else:
-                if(node_next_normalized_graph['g']>node['g'] + getDistance(node,node_next_normalized_graph)):
-                    node_next_normalized_graph['g']=node['g'] +getDistance(node,node_next_normalized_graph)
+                if(node_next_normalized_graph['g']>node['g'] + getTimeDiff(node,node_next_normalized_graph, node['g'])):
+                    node_next_normalized_graph['g']=node['g'] +getTimeDiff(node,node_next_normalized_graph, node['g'])
                     node_next_normalized_graph['parent']=node
                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
                     if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
@@ -254,6 +257,93 @@ def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
                         list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
     #print(f'Lista zamknięta:{list(map(lambda x: x["name"], list_closed))}')
     #print(f'Lista otwarta:{list(map(lambda x: x["name"], list_open))}')
+
+#acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
+#IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
+#zwraca czas w sekundach                  
+def calculateHTime(node_next_normalized_graph, end, graph):
+    return ((math.acos(math.sin(node_next_normalized_graph['averageLat'])*math.sin(end['averageLat']) +
+            math.cos(node_next_normalized_graph['averageLat']) * math.cos(end['averageLat']) * 
+            math.cos(end['averageLon'] - node_next_normalized_graph['averageLon']))*6371 / mpkBusAvgVelocity)/3600)
+
+#TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
+def getTimeDiff(node, node_next_normalized_graph, nodeFromTimeSeconds):
+    nodeFromTime = secondsToHour(nodeFromTimeSeconds)
+    edgesInTheFuture=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+    for edge in node['edges']:
+        if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
+            if(edge._departure_time()==nodeFromTime):
+                return edge._time_diff()
+            else:
+                if(edge._departure_time()>nodeFromTime):
+                    edgesInTheFuture.append(edge)
+    if(len(edgesInTheFuture)>0):
+        chosenEdgeArrTime=datetime.strptime(edgesInTheFuture[0]._arrival_time(), "%H:%M:%S").second #tutaj muszą być posortowane
+        return abs(chosenEdgeArrTime - nodeFromTimeSeconds)
+
+    else:
+        #trzeba wybrać pierwszą, która się trafi (czyli np. następnego dnia)
+        pass
+        
+#IMP: kod z gemini
+def secondsToHour(seconds):
+    return time.strftime('%H:%M:%S', time.gmtime(seconds))
+# #nowa wersja -> działa właściwie; heurystyka to odległość (i g też)
+# def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
+
+#     list_open=[]
+#     list_closed=[]
+
+#     start['g']=0
+#     start['h']=0
+#     start['f']=start['g']+start['h']
+
+
+#     list_open=[start]
+
+#     while len(list_open) > 0:
+#         node = None #to będzie znormalizowany węzeł
+#         node_cost=float('inf')
+
+#         for test_node in list_open:
+#             if (test_node['f']<node_cost):
+#                 node = test_node
+#                 node_cost = test_node['f']
+#         if node['name'] == end['name']:
+#             #print(f'Rozwiazanie:{list(map(lambda x: x["name"], list_closed))}')
+#             #print(f'otwarta lista:{list(map(lambda x: x["name"], list_open))}')
+#             print('Rozwiązanie:')
+#             printSolution(node)
+#             break
+
+#         #TODO: be able to find this node
+#         list_open.remove(node)
+#         list_closed.append(node)
+
+#         #tu się zaczynają problemy z sąsiadami, bo info o sąsiadach ma normalized graph, a tam nie ma AstarNodów
+#         #tutaj node next ma być AStarNodem, tylko jak go utworzyć?
+#         for node_next_name in node['neighbours']:
+#             #szukam po nazwie, bo node_next nie jest AStarNodem
+#             node_next_normalized_graph=graph[node_next_name]
+#             if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
+#                 nnH=calculateHDistance(node_next_normalized_graph, end, graph)
+#                 #TODO: czy trzeba zrobić z czasem? Jak tak, to wtedy trzeba stworzyć calculate h time
+#                 nnG=node['g'] + getDistance(node, node_next_normalized_graph)
+#                 node_next_normalized_graph['h']=nnH
+#                 node_next_normalized_graph['g']=nnG
+#                 node_next_normalized_graph['f']=nnH + nnG
+#                 node_next_normalized_graph['parent']=node
+#                 list_open.append(node_next_normalized_graph)
+#             else:
+#                 if(node_next_normalized_graph['g']>node['g'] + getDistance(node,node_next_normalized_graph)):
+#                     node_next_normalized_graph['g']=node['g'] +getDistance(node,node_next_normalized_graph)
+#                     node_next_normalized_graph['parent']=node
+#                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
+#                     if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
+#                         list_open.append(node_next_normalized_graph)
+#                         list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
+#     #print(f'Lista zamknięta:{list(map(lambda x: x["name"], list_closed))}')
+#     #print(f'Lista otwarta:{list(map(lambda x: x["name"], list_open))}')
     
 def printSolution(node):
     if(node['parent']==None):
@@ -372,10 +462,14 @@ if __name__=='__main__':
     while True:
         start=input('Podaj przystanek początkowy:')
         end=input('Podaj przystanek końcowy:')
+
+        #IMP: kod z gemini konwertujący czas ze stringa w sekundy
+        startTime=input('Podaj czas wyjazdu')
+        startTime=datetime.strptime(startTime, "%H:%M:%S").second
         try:
             startNormalized=normalizedGraph[start]
             endNormalized=normalizedGraph[end]
-            aStarAlg(startNormalized, endNormalized, normalizedGraph)
+            aStarAlg(startNormalized, endNormalized, normalizedGraph, startTime)
         except KeyError:
             print('Nieprawidłowe dane wejściowe')
         option=input('Press "c" to continue or "s" to stop')
