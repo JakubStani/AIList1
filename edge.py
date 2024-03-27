@@ -38,7 +38,18 @@ class Edge:
     
     def _distance(self):
         return self.distance
+    def _arrival_time(self):
+        return self.arrival_time
     
     def _departure_time(self):
         return self.departure_time
+    
+    def _company(self):
+        return self.company
+    
+    def _line(self):
+        return self.line
+    
+    def _id(self):
+        return self.id
     
