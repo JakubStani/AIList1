@@ -15,7 +15,12 @@ class Edge:
 
         #IMP: zerknąłem na czyjś kod (sprawdziłem, jakich funkcji użył do zamiany stringa na czas i czasu na sekundy)
         self.time_diff = (abs(datetime.strptime(self.arrival_time, '%H:%M:%S') - datetime.strptime(self.departure_time, '%H:%M:%S'))).total_seconds()
-        self.distance = math.sqrt((float(start_node._stop_lat()) - float(end_node._stop_lat()))**2 + (float(start_node._stop_lon()) - float(end_node._stop_lon()))**2)
+
+        #acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
+        #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
+        self.distance = (math.acos(math.sin(float(start_node._stop_lat()))*math.sin(float(end_node._stop_lat())) +
+            math.cos(float(start_node._stop_lat())) * math.cos(float(end_node._stop_lat())) * 
+            math.cos(float(end_node._stop_lon()) - float(start_node._stop_lon())))*6371)
     def __str__(self):
         return f'id: {self.id}, \
         company: {self.company}, \
@@ -52,4 +57,5 @@ class Edge:
     
     def _id(self):
         return self.id
+    
     

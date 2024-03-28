@@ -1,5 +1,6 @@
 import math
 import time
+from main import validateTime
 
 #nowa wersja -> działa właściwie; heurystyka to odległość (i g też)
 def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
@@ -73,13 +74,17 @@ def printSolution(node):
         
 #IMP: kod z gemini
 def secondsToHour(seconds):
-    return time.strftime('%H:%M:%S', time.gmtime(seconds))
+    return validateTime(time.strftime('%H:%M:%S', time.gmtime(seconds)))
 
 def calculateHDistance(normalizedNodeFrom, normalizedNodeTo, graph):
-    return (math.sqrt((normalizedNodeFrom['averageLon'] - 
-            normalizedNodeTo['averageLon'])**2 + 
-            (normalizedNodeFrom['averageLat'] - 
-            normalizedNodeTo['averageLat'])**2))
+    # to trzeba poprawić na km
+    # return (math.sqrt((normalizedNodeFrom['averageLon'] - 
+    #         normalizedNodeTo['averageLon'])**2 + 
+    #         (normalizedNodeFrom['averageLat'] - 
+    #         normalizedNodeTo['averageLat'])**2))
+    return (math.acos(math.sin(normalizedNodeFrom['averageLat'])*math.sin(normalizedNodeTo['averageLat']) +
+            math.cos(normalizedNodeFrom['averageLat']) * math.cos(normalizedNodeTo['averageLat']) * 
+            math.cos(normalizedNodeTo['averageLon'] - normalizedNodeFrom['averageLon']))*6371)
 
 #Chcemy brać dystans, czy czas?
 def getDistance(node, node_next):
