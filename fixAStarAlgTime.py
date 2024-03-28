@@ -34,7 +34,7 @@ def buildGraphFromCSV(csvFileName):
                     graph[0][f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}']=start_node
                 if(not (f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}' in graph[0])):
                     graph[0][f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}']=end_node
-
+                    
                 normalizedGraph = addToNormalizedGraph(edge, normalizedGraph)
 
         for key in normalizedGraph:
@@ -121,19 +121,16 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
     
 def printSolution(node):
     if(node['parent']==None):
-        if(not node['departureTime']==None):
-            print(f' {node['edgeId']} Przystanek: {node['name']}, \
-                czas pojawienia się na przystanku: {node['arrivalTime']}, \
-                    odjazd z tego przystanku: {node['departureTime']} linią {node['departureLine']}')
-        else:
-            print(f'Przystanek: {node['name']}, \
-            czas pojawienia się na przystanku: {node['arrivalTime']}')
+        print(f' {node['edgeId']} Przystanek: {node['name']}, \
+              czas pojawienia się na przystanku: {node['arrivalTime']}, \
+                odjazd z tego przystanku: {node['departureTime']} linią {node['departureLine']}')
     else:
         printSolution(node['parent'])
         print(f' -> {node['edgeId']} Przystanek: {node['name']}, \
               przyjazd: {node['arrivalTime']}, \
                 odjazd z tego przystanku: {node['departureTime']} \
                     linią {node['departureLine']}')
+
 
 #TODO: coś tu nie działa-> czasem linia jest zła
 # TODO: g to koszt dotarcia, a koszt dotarcia do startu powinien wynosić 0 !!! (popra to jakoś, może np. normalizuj od danej godziny)
