@@ -5,10 +5,12 @@ from aStarNode import AStarNode
 import math
 from datetime import datetime
 import time
+import sys
 
-#edgeToCheck=None
+
 #Graf buduje się właściwie
 def buildGraphFromCSV(csvFileName):
+    
     #global edgeToCheck
     graph=[dict(),[]]
     normalizedGraph=dict()
@@ -123,24 +125,27 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
 ######
 
 # #WAŻNE!: zawsze przystanek, z którego wysiadamy jest przystankiem, na którym wsiadamy
-def printSolution(node):
+def printSolution(node, endName):
     if(node['parent']==None):
-        print(f" Przystanek: {node['name']}, \
-              czas pojawienia się na przystanku: {node['arrivalTime']}, ", end="")
+        print(f" Przystanek: {node['name']}, na przystanku: {node['arrivalTime']}, ", end="")
     else:
-        printSolution(node['parent'])
-        print(f'odjazd z tego przystanku: {node['departureTime']} \
-                    linią {node['departureLine']}')
-        print(f'-> {node['edgeId']} Przystanek: {node['name']}, \
-              przyjazd: {node['arrivalTime']}, ')
+        printSolution(node['parent'], endName)
+        print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}')
+        print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
+        if (node['name']==endName):
+            time.sleep(0.1)
+            print(f'Wartośc f dla tego rozwiazania= {node['f']}', file=sys.stderr)
+            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations} ns', file=sys.stderr)
 
 
 
-#TODO: coś tu nie działa-> czasem linia jest zła
-# TODO: g to koszt dotarcia, a koszt dotarcia do startu powinien wynosić 0 !!! (popra to jakoś, może np. normalizuj od danej godziny)
+
+#pomysł na skrócenie czasu obliczeń-> od razu wstawianie do listy otwartej tak, żeby było sortowanie przez wstawianie
 mpkBusAvgVelocity=21.3
+aStarTimeCalculations=None
 #nowa wersja -> heurystyka to czas (i g też)
 def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane węzły
+    aStarAlgStartsCalculations=time.time_ns()
 
     list_open=[]
     list_closed=[]
@@ -163,8 +168,11 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
                 node = test_node
                 node_cost = test_node['f']
         if node['name'] == end['name']:
+            aStarAlgEndsCalculations=time.time_ns()
+            global aStarTimeCalculations
+            aStarTimeCalculations=aStarAlgEndsCalculations-aStarAlgStartsCalculations
             print('Rozwiązanie:')
-            printSolution(node)
+            printSolution(node, end['name'])
             break
 
         #TODO: be able to find this node
@@ -279,11 +287,11 @@ def calculateHTime(normalizedNodeFrom, normalizedNodeTo, graph):
 if __name__=='__main__':
     normalizedGraph=buildGraphFromCSV('connection_graph.csv')
     while True:
-        start=input('Podaj przystanek początkowy:')
-        end=input('Podaj przystanek końcowy:')
+        start=input('Podaj przystanek początkowy: ')
+        end=input('Podaj przystanek końcowy: ')
 
         #IMP: kod z gemini konwertujący czas ze stringa w sekundy
-        startTime=hourToSeconds(input('Podaj czas wyjazdu'))
+        startTime=hourToSeconds(input('Podaj czas wyjazdu: '))
         try:
             startNormalized=normalizedGraph[start]
             endNormalized=normalizedGraph[end]
