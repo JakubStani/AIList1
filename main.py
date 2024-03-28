@@ -67,7 +67,6 @@ def addToNormalizedGraph(edge, normalizedGraph):
             'edges': [edge],
             'neighbours': set([edge._end_node()._stop_name()]),
             'name': edge._start_node()._stop_name(),
-
             'f': None,
             'g':None,
             'h':None,

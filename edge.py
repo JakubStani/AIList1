@@ -16,6 +16,7 @@ class Edge:
         #IMP: zerknąłem na czyjś kod (sprawdziłem, jakich funkcji użył do zamiany stringa na czas i czasu na sekundy)
         self.time_diff = (abs(datetime.strptime(self.arrival_time, '%H:%M:%S') - datetime.strptime(self.departure_time, '%H:%M:%S'))).total_seconds()
 
+        #TODO:to chyba źle liczy
         #acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
         #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
         self.distance = (math.acos(math.sin(float(start_node._stop_lat()))*math.sin(float(end_node._stop_lat())) +
