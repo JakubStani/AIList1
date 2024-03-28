@@ -6,9 +6,10 @@ import math
 from datetime import datetime
 import time
 
-
+#edgeToCheck=None
 #Graf buduje się właściwie
 def buildGraphFromCSV(csvFileName):
+    #global edgeToCheck
     graph=[dict(),[]]
     normalizedGraph=dict()
 
@@ -17,6 +18,8 @@ def buildGraphFromCSV(csvFileName):
         for dataLine in file:
             dataLine=dataLine.split(',')
             if dataLine[0]!='':
+                
+                    
                 start_node = Node(dataLine[5], float(dataLine[7]), float(dataLine[8]))
                 end_node = Node(dataLine[6], float(dataLine[9]), float(dataLine[10]))
                 edge = Edge(
@@ -28,6 +31,8 @@ def buildGraphFromCSV(csvFileName):
                     start_node,
                     end_node
                 )
+                # if dataLine[0]=='55116':
+                #     edgeToCheck=edge
                 graph[1].append(edge)
                 if(not (f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}' in graph[0])):
                     graph[0][f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}']=start_node
@@ -120,15 +125,14 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
 # #WAŻNE!: zawsze przystanek, z którego wysiadamy jest przystankiem, na którym wsiadamy
 def printSolution(node):
     if(node['parent']==None):
-        print(f' {node['edgeId']} Przystanek: {node['name']}, \
-              czas pojawienia się na przystanku: {node['arrivalTime']}, \
-                odjazd z tego przystanku: {node['departureTime']} linią {node['departureLine']}')
+        print(f" Przystanek: {node['name']}, \
+              czas pojawienia się na przystanku: {node['arrivalTime']}, ", end="")
     else:
         printSolution(node['parent'])
-        print(f' -> {node['edgeId']} Przystanek: {node['name']}, \
-              przyjazd: {node['arrivalTime']}, \
-                odjazd z tego przystanku: {node['departureTime']} \
+        print(f'odjazd z tego przystanku: {node['departureTime']} \
                     linią {node['departureLine']}')
+        print(f'-> {node['edgeId']} Przystanek: {node['name']}, \
+              przyjazd: {node['arrivalTime']}, ')
 
 
 
@@ -167,6 +171,7 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
         list_open.remove(node)
         list_closed.append(node)
 
+        #zapisuj co trzeba (arrival time itp.) ale w następnym nodzie
         for node_next_name in node['neighbours']:
             node_next_normalized_graph=graph[node_next_name]
             if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
@@ -178,21 +183,27 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
                 node_next_normalized_graph['f']=nnH + nnG
                 node_next_normalized_graph['parent']=node
                 node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time()
-                node['departureTime']=gTDResult[1]._departure_time()
-                node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                node['edgeId']=gTDResult[1]._id()
+                node_next_normalized_graph['edgeId']=gTDResult[1]._id()
+                node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time()
+                node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
+                # node['departureTime']=gTDResult[1]._departure_time()
+                # node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
+                # node['edgeId']=gTDResult[1]._id()
                 list_open.append(node_next_normalized_graph)
             else:
                 #co tu się dokładnie dzieje?
                 gTDResult=getTimeDiff(node,node_next_normalized_graph)
                 if(node_next_normalized_graph['g']>node['g'] + gTDResult[0]):
                     node_next_normalized_graph['g']=node['g'] +gTDResult[0]
-                    node['departureTime']=gTDResult[1]._departure_time()
-                    node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                    node['edgeId']=gTDResult[1]._id()
+                    # node['departureTime']=gTDResult[1]._departure_time()
+                    # node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
+                    # node['edgeId']=gTDResult[1]._id()
                     node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time()
                     node_next_normalized_graph['parent']=node
                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
+                    node_next_normalized_graph['edgeId']=gTDResult[1]._id()
+                    node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time()
+                    node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
                     if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
                         list_open.append(node_next_normalized_graph)
                         list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
@@ -277,6 +288,7 @@ if __name__=='__main__':
             startNormalized=normalizedGraph[start]
             endNormalized=normalizedGraph[end]
             aStarAlgTime(startNormalized, endNormalized, normalizedGraph, startTime)
+            #print(edgeToCheck)
         except KeyError:
             print('Nieprawidłowe dane wejściowe')
         option=input('Press "c" to continue or "s" to stop')
