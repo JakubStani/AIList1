@@ -13,11 +13,11 @@ def buildGraphFromCSV(csvFileName):
     normalizedGraph=dict()
 
     with open(csvFileName,  encoding="UTF-8") as file:
+
         for dataLine in file:
             dataLine=dataLine.split(',')
             if dataLine[0]!='':
                 start_node = Node(dataLine[5], float(dataLine[7]), float(dataLine[8]))
-
                 end_node = Node(dataLine[6], float(dataLine[9]), float(dataLine[10]))
                 edge = Edge(
                     dataLine[0],
@@ -28,15 +28,15 @@ def buildGraphFromCSV(csvFileName):
                     start_node,
                     end_node
                 )
-
                 graph[1].append(edge)
                 if(not (f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}' in graph[0])):
                     graph[0][f'{start_node._stop_name()}{start_node._stop_lat()}{start_node._stop_lon()}']=start_node
                 if(not (f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}' in graph[0])):
                     graph[0][f'{end_node._stop_name()}{end_node._stop_lat()}{end_node._stop_lon()}']=end_node
-                    
+                #add to normalized graph to get average location of stop
+                    #ta funkcja jest sprawdzona i wykonuje się właściwie
                 normalizedGraph = addToNormalizedGraph(edge, normalizedGraph)
-
+                    #normalizedGraph = addToNormalizedGraph(end_node, start_node, normalizedGraph)
         for key in normalizedGraph:
             averageLon=0 #x
             averageLat=0 #y
@@ -78,28 +78,24 @@ def addToNormalizedGraph(edge, normalizedGraph):
             'howFarFromStart': None,
             'g/hFFS': None
             }
-
     else:
         #jeżeli tego konkretnego węzła nie ma w zbiorze węzłów, to go dodajemy
         if(edge._start_node() not in normalizedGraph[edge._start_node()._stop_name()]['nodes']):
             normalizedGraph[edge._start_node()._stop_name()]['nodes'].append(edge._start_node())
-        #normalizedGraph[1][node.stop_name()]['edges'].add(nodeTo.stop_name())
         #krawędź dodajemy tak czy owak, ponieważ każda jest unikalna
         normalizedGraph[edge._start_node()._stop_name()]['edges'].append(edge)
         #jeżeli tego konkretnego węzła nie ma w zbiorze sąsiadów, to zostanie dodany
         normalizedGraph[edge._start_node()._stop_name()]['neighbours'].add(edge._end_node()._stop_name())
-
+        
     return addEndNodeToNormalizedGraph(edge._end_node(),normalizedGraph, edge)
 
 def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
     if(not(end_node._stop_name() in normalizedGraph)):
-
         normalizedGraph[end_node._stop_name()]={
             'nodes': [end_node],
             'edges': [],
             'neighbours': set(),
             'name': end_node._stop_name(),
-            #nowe:
             'f': None,
             'g':None,
             'h':None,
@@ -116,9 +112,12 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
         #jeżeli tego konkretnego węzła nie ma w liście węzłów, to go dodajemy
         if(end_node not in normalizedGraph[end_node._stop_name()]['nodes']):
             normalizedGraph[end_node._stop_name()]['nodes'].append(end_node)
-        
+
     return normalizedGraph
-    
+
+######
+
+# #WAŻNE!: zawsze przystanek, z którego wysiadamy jest przystankiem, na którym wsiadamy
 def printSolution(node):
     if(node['parent']==None):
         print(f' {node['edgeId']} Przystanek: {node['name']}, \
@@ -130,6 +129,7 @@ def printSolution(node):
               przyjazd: {node['arrivalTime']}, \
                 odjazd z tego przystanku: {node['departureTime']} \
                     linią {node['departureLine']}')
+
 
 
 #TODO: coś tu nie działa-> czasem linia jest zła
@@ -217,7 +217,7 @@ def getTimeDiff(node, node_next_normalized_graph):
             if(edge._departure_time()==nodeFromTime):
                 return [edge._time_diff(), edge]
             else:
-                edgesToCheck=addToSortedEdgesList(edge, edgesToCheck) 
+                edgesToCheck=addToSortedEdgesList(edge, edgesToCheck)  
     chosenEdge = None
     for edge in edgesToCheck:
         if not len(edge._departure_time())==len(nodeFromTime):
@@ -230,6 +230,7 @@ def getTimeDiff(node, node_next_normalized_graph):
     chosenEdgeArrTime=hourToSeconds(chosenEdge._arrival_time()) #tutaj muszą być posortowane
     return [abs(chosenEdgeArrTime - hourToSeconds(node['arrivalTime'])), chosenEdge]
     
+
 
 def addToSortedEdgesList(edge, edgesToCheck):
     for i in range(len(edgesToCheck)):
@@ -244,8 +245,8 @@ def addToSortedEdgesList(edge, edgesToCheck):
         
 #IMP: kod z gemini
 def secondsToHour(seconds):
-    return validateTime(time.strftime('%H:%M:%S', time.gmtime(seconds)))
-
+    return validateTime(time.strftime('%H:%M:%S', time.gmtime(seconds))
+)
 #IMP: kod ze strony: https://www.geeksforgeeks.org/convert-a-datetime-object-to-seconds/
 def hourToSeconds(time):
     timeDateObject = datetime.strptime(time, "%H:%M:%S")
@@ -272,12 +273,12 @@ if __name__=='__main__':
 
         #IMP: kod z gemini konwertujący czas ze stringa w sekundy
         startTime=hourToSeconds(input('Podaj czas wyjazdu'))
-        # try:
-        startNormalized=normalizedGraph[start]
-        endNormalized=normalizedGraph[end]
-        aStarAlgTime(startNormalized, endNormalized, normalizedGraph, startTime)
-        # except KeyError:
-        #     print('Nieprawidłowe dane wejściowe')
+        try:
+            startNormalized=normalizedGraph[start]
+            endNormalized=normalizedGraph[end]
+            aStarAlgTime(startNormalized, endNormalized, normalizedGraph, startTime)
+        except KeyError:
+            print('Nieprawidłowe dane wejściowe')
         option=input('Press "c" to continue or "s" to stop')
         if(option=='s'):
             break
@@ -285,7 +286,6 @@ if __name__=='__main__':
             for node in normalizedGraph:
                 normalizedGraph[node]['f']=None
                 normalizedGraph[node]['g']=None
-                # normalizedGraph[node]['gString']=None
                 normalizedGraph[node]['h']=None
                 normalizedGraph[node]['parent']=None
                 normalizedGraph[node]['departureTime']=None
