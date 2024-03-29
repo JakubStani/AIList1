@@ -3,6 +3,7 @@ import math
 
 #TODO: fix time operations
 class Edge:
+
     def __init__(self, id, company, line, departure_time, arrival_time, start_node, end_node):
 
         self.id = id
@@ -19,9 +20,17 @@ class Edge:
         #TODO:to chyba źle liczy
         #acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
         #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
-        self.distance = (math.acos(math.sin(float(start_node._stop_lat()))*math.sin(float(end_node._stop_lat())) +
-            math.cos(float(start_node._stop_lat())) * math.cos(float(end_node._stop_lat())) * 
-            math.cos(float(end_node._stop_lon()) - float(start_node._stop_lon())))*6371)
+        lat1 = float(start_node._stop_lat()) * math.pi / 180
+        lon1 = float(start_node._stop_lon()) * math.pi / 180
+        lat2 = float(end_node._stop_lat()) * math.pi / 180
+        lon2 = float(end_node._stop_lon()) * math.pi / 180
+        nauticalMileToKilometers=1.852
+
+        self.distance =(3440.1 * math.acos( 
+            (math.sin(lat1) * math.sin(lat2)) +
+            math.cos(lat1) * math.cos(lat2) *
+            math.cos(lon1 - lon2)) *nauticalMileToKilometers)
+
     def __str__(self):
         return f'id: {self.id}, \
         company: {self.company}, \

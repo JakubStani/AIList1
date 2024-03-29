@@ -135,7 +135,7 @@ def printSolution(node, endName):
         if (node['name']==endName):
             time.sleep(0.1)
             print(f'Wartośc f dla tego rozwiazania= {node['f']}', file=sys.stderr)
-            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations} ns', file=sys.stderr)
+            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations * (10**(-9))} ns', file=sys.stderr)
 
 
 
@@ -183,7 +183,7 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
         for node_next_name in node['neighbours']:
             node_next_normalized_graph=graph[node_next_name]
             if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
-                nnH=calculateHTime(node_next_normalized_graph, end, graph)
+                nnH=calculateHTime(node_next_normalized_graph, end)
                 gTDResult=getTimeDiff(node, node_next_normalized_graph)
                 nnG=node['g'] + gTDResult[0]
                 node_next_normalized_graph['h']=nnH
@@ -220,32 +220,55 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
 #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
 #zwraca czas w sekundach                  
 def calculateHTime(node_next_normalized_graph, end):
-    return ((math.acos(math.sin(node_next_normalized_graph['averageLat'])*math.sin(end['averageLat']) +
-            math.cos(node_next_normalized_graph['averageLat']) * math.cos(end['averageLat']) * 
-            math.cos(end['averageLon'] - node_next_normalized_graph['averageLon']))*6371 / mpkBusAvgVelocity)*3600)
+    return (calculateHDistance(node_next_normalized_graph, end) / mpkBusAvgVelocity)*3600
+
+def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
+    nauticalMileToKilometers=1.852
+    # to trzeba zmienić na km
+    # return (math.sqrt((normalizedNodeFrom['averageLon'] - 
+    #         normalizedNodeTo['averageLon'])**2 + 
+    #         (normalizedNodeFrom['averageLat'] - 
+    #         normalizedNodeTo['averageLat'])**2))
+
+    # return (math.acos(math.sin(normalizedNodeFrom['averageLat'])*math.sin(normalizedNodeTo['averageLat']) +
+    #         math.cos(normalizedNodeFrom['averageLat']) * math.cos(normalizedNodeTo['averageLat']) * 
+    #         math.cos(normalizedNodeTo['averageLon'] - normalizedNodeFrom['averageLon']))*6371)
+    lat1 = degreesToRadians(normalizedNodeFrom['averageLat'])
+    lon1 = degreesToRadians(normalizedNodeFrom['averageLon'])
+    lat2 = degreesToRadians(normalizedNodeTo['averageLat'])
+    lon2 = degreesToRadians(normalizedNodeTo['averageLon'])
+    return (
+        3440.1 * math.acos( 
+            (math.sin(lat1) * math.sin(lat2)) +
+            math.cos(lat1) * math.cos(lat2) *
+            math.cos(lon1 - lon2)) *nauticalMileToKilometers
+    )
+
+def degreesToRadians(degrees):
+    return degrees * math.pi / 180
 
 #TODO: do poprawy to, że nie rozróżnia linii i może się przesiąść, nawet, jeżeli nie musi, bo czas będzie ten sam (np. z K przesiadam się do 144 i jadę do domu)
 #TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
 def getTimeDiff(node, node_next_normalized_graph):
-    nodeFromTime = node['arrivalTime']
-    edgesToCheck=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+
+    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
-            if not len(edge._departure_time())==len(nodeFromTime):
+            if not len(edge._departure_time())==len(node['arrivalTime']):
                 print('Niezgodna dlugosc dat! 290')
-            if(edge._departure_time()==nodeFromTime):
+            if(edge._departure_time()==node['arrivalTime']):
                 return [edge._time_diff(), edge]
             else:
-                edgesToCheck=addToSortedEdgesList(edge, edgesToCheck)  
+                edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)  
     chosenEdge = None
-    for edge in edgesToCheck:
-        if not len(edge._departure_time())==len(nodeFromTime):
+    for edge in edgesWithTheSameEnd:
+        if not len(edge._departure_time())==len(node['arrivalTime']):
                 print('Niezgodna dlugosc dat! 310')
-        if edge._departure_time()>nodeFromTime: #nie =, bo to już było sprawdzone
+        if edge._departure_time()>node['arrivalTime']: #nie =, bo to już było sprawdzone
             chosenEdge=edge
             break
     if chosenEdge==None:
-        chosenEdge=edgesToCheck[0]
+        chosenEdge=edgesWithTheSameEnd[0]
     chosenEdgeArrTime=hourToSeconds(chosenEdge._arrival_time()) #tutaj muszą być posortowane
     return [abs(chosenEdgeArrTime - hourToSeconds(node['arrivalTime'])), chosenEdge]
     
@@ -275,13 +298,13 @@ def hourToSeconds(time):
 
     return seconds
 
-def calculateHTime(normalizedNodeFrom, normalizedNodeTo, graph):
-    #TODO: stwórz funkcję, konwertującą szerokość kątową na kilometry (żeby móc obliczyć przewidywany czas do celu)
-    mpkBusAvgVelocity=21.3
-    return (math.sqrt((normalizedNodeFrom['averageLon'] - 
-            normalizedNodeTo['averageLon'])**2 + 
-            (normalizedNodeFrom['averageLat'] - 
-            normalizedNodeTo['averageLat'])**2))
+# def calculateHTime(normalizedNodeFrom, normalizedNodeTo, graph):
+#     #TODO: stwórz funkcję, konwertującą szerokość kątową na kilometry (żeby móc obliczyć przewidywany czas do celu)
+#     mpkBusAvgVelocity=21.3
+#     return (math.sqrt((normalizedNodeFrom['averageLon'] - 
+#             normalizedNodeTo['averageLon'])**2 + 
+#             (normalizedNodeFrom['averageLat'] - 
+#             normalizedNodeTo['averageLat'])**2))
 
     
 if __name__=='__main__':

@@ -131,6 +131,8 @@ def getChanges(node, node_next_normalized_graph):
     chosenEdge=None
 
     #szukamy połączeń, które prowadzą do przystanku docelowego
+    #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    #a jest sąsiadem, jeżeli ma wspólną krawędź
     edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
@@ -199,7 +201,7 @@ def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
     for i in range(len(listOfEdges)):
         if listOfEdges[i]._arrival_time()<fastestEdgeArrival:
             if(not nodeFromTime==None):
-                #chcemy uniknać sytuacji, że wybierze linię, która przyjeżdża o np. 00:00:01, a wyjeżdża o 23:59:59 
+                #chcemy uniknać sytuacji, że wybierze linię, która przyjeżdża o np. 00:00:01, a wyjeżdża o 23:59:59, jeżeli są lepsze opcje 
                 #(bo taka linia przyjeżdża o najszybszej godzinie, ale najszybszej w następnym dniu)
                 if listOfEdges[i]._arrival_time()>nodeFromTime:
                     fastestEdgeArrival=listOfEdges[i]._arrival_time()
@@ -210,12 +212,23 @@ def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
                 if listOfEdges[i]._departure_time()>'00:00:00':
                     fastestEdgeArrival=listOfEdges[i]._arrival_time()
                     fastestEdgeArrivalIndex=i
+            
     # if(fastestEdgeArrivalIndex==None):
     #     list(map(lambda x: print(f'dep: {x._departure_time()}, arr: {x._arrival_time()}', listOfEdges)))
+                    
+    #jeżeli były tylko takie opcje, które wyjeżdżają jednego dnia, a dojeżdżają drugiego...
+    if(fastestEdgeArrivalIndex==None and not nodeFromTime==None):
+        #wybieramy tą z najszybszym dojazdem
+        fastestEdgeArrival='23:59:59'
+        for i in range(len(listOfEdges)):
+            if listOfEdges[i]._arrival_time()<fastestEdgeArrival:
+                fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                fastestEdgeArrivalIndex=i
+
     return listOfEdges[fastestEdgeArrivalIndex]
 
 def calculateHChange(node_next_normalized_graph, end, graph):
-    distanceKm=calculateHDistance(node_next_normalized_graph, end, graph)
+    distanceKm=calculateHDistance(node_next_normalized_graph, end)
     return node_next_normalized_graph['g/hFFS']*distanceKm
 
 
@@ -229,20 +242,35 @@ def printSolutionAStarChange(node, endName):
         print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}, przesidaki do tej pory: {node['g']}')
         print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
         if (node['name']==endName):
-            time.sleep(0.1)
+            time.sleep(0.5)
             print(f'Wartośc f dla tego rozwiazania= {node['f']}', file=sys.stderr)
-            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations} ns', file=sys.stderr)
+            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations*(10**(-9))} s', file=sys.stderr)
 
-def calculateHDistance(normalizedNodeFrom, normalizedNodeTo, graph):
+#IMP: Wzór "Haversine formula" (źródło: https://www.youtube.com/watch?v=HaGj0DjX8W8)
+def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
+    nauticalMileToKilometers=1.852
     # to trzeba zmienić na km
     # return (math.sqrt((normalizedNodeFrom['averageLon'] - 
     #         normalizedNodeTo['averageLon'])**2 + 
     #         (normalizedNodeFrom['averageLat'] - 
     #         normalizedNodeTo['averageLat'])**2))
 
-    return (math.acos(math.sin(normalizedNodeFrom['averageLat'])*math.sin(normalizedNodeTo['averageLat']) +
-            math.cos(normalizedNodeFrom['averageLat']) * math.cos(normalizedNodeTo['averageLat']) * 
-            math.cos(normalizedNodeTo['averageLon'] - normalizedNodeFrom['averageLon']))*6371)
+    # return (math.acos(math.sin(normalizedNodeFrom['averageLat'])*math.sin(normalizedNodeTo['averageLat']) +
+    #         math.cos(normalizedNodeFrom['averageLat']) * math.cos(normalizedNodeTo['averageLat']) * 
+    #         math.cos(normalizedNodeTo['averageLon'] - normalizedNodeFrom['averageLon']))*6371)
+    lat1 = degreesToRadians(normalizedNodeFrom['averageLat'])
+    lon1 = degreesToRadians(normalizedNodeFrom['averageLon'])
+    lat2 = degreesToRadians(normalizedNodeTo['averageLat'])
+    lon2 = degreesToRadians(normalizedNodeTo['averageLon'])
+    return (
+        3440.1 * math.acos( 
+            (math.sin(lat1) * math.sin(lat2)) +
+            math.cos(lat1) * math.cos(lat2) *
+            math.cos(lon1 - lon2)) *nauticalMileToKilometers
+    )
+
+def degreesToRadians(degrees):
+    return degrees * math.pi / 180
 
 def addToSortedEdgesList(edge, edgesToCheck):
     for i in range(len(edgesToCheck)):
