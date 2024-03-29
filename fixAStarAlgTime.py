@@ -134,8 +134,8 @@ def printSolution(node, endName):
         print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
         if (node['name']==endName):
             time.sleep(0.1)
-            print(f'Wartośc f dla tego rozwiazania= {node['f']}', file=sys.stderr)
-            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations * (10**(-9))} ns', file=sys.stderr)
+            print(f'Wartośc f dla tego rozwiazania= {node['f']} s', file=sys.stderr)
+            print(f'Czas obliczeń algorytmu= {aStarTimeCalculations * (10**(-9))} s', file=sys.stderr)
 
 
 
@@ -220,6 +220,7 @@ def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane w
 #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
 #zwraca czas w sekundach                  
 def calculateHTime(node_next_normalized_graph, end):
+    global mpkBusAvgVelocity
     return (calculateHDistance(node_next_normalized_graph, end) / mpkBusAvgVelocity)*3600
 
 def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
@@ -251,7 +252,10 @@ def degreesToRadians(degrees):
 #TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
 def getTimeDiff(node, node_next_normalized_graph):
 
-    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+    #szukamy połączeń, które prowadzą do przystanku docelowego
+    #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    #a jest sąsiadem, jeżeli ma wspólną krawędź
+    edgesWithTheSameEnd=[]
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
             if not len(edge._departure_time())==len(node['arrivalTime']):
