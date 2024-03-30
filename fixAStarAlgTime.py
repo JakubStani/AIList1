@@ -139,7 +139,7 @@ def printSolution(node, endName):
 
 
 
-
+#TODO: zaimplementuj, aby wybierało linię, która ma najszybszy dojazd z linii z przyszłości
 #pomysł na skrócenie czasu obliczeń-> od razu wstawianie do listy otwartej tak, żeby było sortowanie przez wstawianie
 mpkBusAvgVelocity=21.3
 aStarTimeCalculations=None
