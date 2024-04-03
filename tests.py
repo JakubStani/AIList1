@@ -165,7 +165,32 @@
 # if __name__=='__main__':
 #     print(buildGraphFromCSV())
 
-sl={'key1': 'val1', 'key2': 'val2'}
-test=sl['key2']
-test='valtest'
-print(sl)
+# sl={'key1': 'val1', 'key2': 'val2'}
+# test=sl['key2']
+# test='valtest'
+# print(sl)
+
+import math
+# print((math.acos(math.sin(float(15.0))*math.sin(float(20.0)) +
+#             math.cos(float(15.0)) * math.cos(float(20.0)) * 
+#             math.cos(float(25.0) - float(20)))*6371))
+
+
+#Wzór "Haversine formula" (źródło: https://www.youtube.com/watch?v=HaGj0DjX8W8)
+nauticalMileToKilometers=1.852
+
+def degreesToRadians(degrees):
+    return degrees * math.pi / 180
+
+def calculateDistanceKm(lat1, lon1, lat2, lon2):
+    return (
+        3440.1 * math.acos( 
+            (math.sin(lat1) * math.sin(lat2)) +
+            math.cos(lat1) * math.cos(lat2) *
+            math.cos(lon1 - lon2)) *nauticalMileToKilometers
+    )
+lat1 = degreesToRadians(15.0)
+lon1 = degreesToRadians(20.0)
+lat2 = degreesToRadians(20.0)
+lon2 = degreesToRadians(25.0)
+print(calculateDistanceKm(lat1, lon1, lat2, lon2))
