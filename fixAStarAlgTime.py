@@ -252,30 +252,147 @@ def degreesToRadians(degrees):
 #TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
 def getTimeDiff(node, node_next_normalized_graph):
 
+    # #WERSJA POPRZEDNIA -> bez uwzględnienia najszybszego dojazdu, tylko uwzględnienie najszybszego wyjazdu
+    # #szukamy połączeń, które prowadzą do przystanku docelowego
+    # #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    # #a jest sąsiadem, jeżeli ma wspólną krawędź
+    # edgesWithTheSameEnd=[]
+    # for edge in node['edges']:
+    #     if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
+    #         if not len(edge._departure_time())==len(node['arrivalTime']):
+    #             print('Niezgodna dlugosc dat! 290')
+    #         if(edge._departure_time()==node['arrivalTime']):
+    #             return [edge._time_diff(), edge]
+    #         else:
+    #             edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)  
+    # chosenEdge = None
+    # for edge in edgesWithTheSameEnd:
+    #     if not len(edge._departure_time())==len(node['arrivalTime']):
+    #             print('Niezgodna dlugosc dat! 310')
+    #     if edge._departure_time()>node['arrivalTime']: #nie =, bo to już było sprawdzone
+    #         chosenEdge=edge
+    #         break
+    # if chosenEdge==None:
+    #     chosenEdge=edgesWithTheSameEnd[0]
+    # chosenEdgeArrTime=hourToSeconds(chosenEdge._arrival_time()) #tutaj muszą być posortowane
+    # return [abs(chosenEdgeArrTime - hourToSeconds(node['arrivalTime'])), chosenEdge]
+
+    #NOWA WERSJA -> uwzględnienie najszybszego dojazdu, a nie najszybszego wyjazdu
+    nodeFromTime = node['arrivalTime']
+
+    # #najkorzystniejsze połączenie z tą samą linią
+    # chosenEdgeWithTheSameLine= None
+    # #jaka sytuacja: 0-> wyjazd tegosamego dnia, co dojazd, 1-> wyjazd i dojazd w różne dni, 2-> wyjazd i dojazd następnego dnia
+    # eventWithTheSameLine=None
+
+    #najkorzystniejsze połączenie ogółem
+    chosenEdge=None
+    # #jaka sytuacja: 0-> wyjazd tegosamego dnia, co dojazd, 1-> wyjazd i dojazd w różne dni, 2-> wyjazd i dojazd następnego dnia
+    # eventGeneral=None
+
+
     #szukamy połączeń, które prowadzą do przystanku docelowego
     #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
     #a jest sąsiadem, jeżeli ma wspólną krawędź
-    edgesWithTheSameEnd=[]
+    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
-            if not len(edge._departure_time())==len(node['arrivalTime']):
-                print('Niezgodna dlugosc dat! 290')
-            if(edge._departure_time()==node['arrivalTime']):
-                return [edge._time_diff(), edge]
-            else:
-                edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)  
-    chosenEdge = None
-    for edge in edgesWithTheSameEnd:
-        if not len(edge._departure_time())==len(node['arrivalTime']):
-                print('Niezgodna dlugosc dat! 310')
-        if edge._departure_time()>node['arrivalTime']: #nie =, bo to już było sprawdzone
-            chosenEdge=edge
+            edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)
+
+    # #Jednak tego poniższego nie
+    # #odsiewamy te, które są tą samą linią
+    # edgesWithTheSameLine=[]
+    # #dla węzła startowego nie ma żadnej lini, którą przyjechaliśmy, więc tego nie sprawdzamy
+    # if(not node['departureLine']==None):
+    #     for edge in edgesWithTheSameEnd:
+    #         if(f'{edge._company()} {edge._line()}'==node['departureLine']): #departureLine, to linia, którą się przyjechało do node (bo kolejne węzły zapamiętują poprzednie krawędzie)
+    #             edgesWithTheSameLine.append(edge)
+
+    
+    # #jeżeli są połączenia tą samą linia...
+    # edgesWithTheSameLineInTheFutureIndex=None
+    # if len(edgesWithTheSameLine)>0:
+    #     #staramy się znaleźć najszybsze z nich, które jest w przyszłości tego samego dnia
+    #     for i in range(len(edgesWithTheSameLine)):
+    #         if edgesWithTheSameLine[i]._departure_time()>=nodeFromTime:
+    #             edgesWithTheSameLineInTheFutureIndex=i
+    #             break
+        
+    #     #jeżeli są jakieś w przyszłości tego samego dnia...
+    #     if not edgesWithTheSameLineInTheFutureIndex==None:
+    #         #ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą
+    #         #szukamy linii z najszybszym przyjazdem (ale z przyjazdem w tym samym dniu)
+    #         chosenEdgeWithTheSameLine=chooseEdgeWithFastestArrival(edgesWithTheSameLine[edgesWithTheSameLineInTheFutureIndex:len(edgesWithTheSameLine)], nodeFromTime)
+
+    #     #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
+    #     else:
+    #         chosenEdgeWithTheSameLine=chooseEdgeWithFastestArrival(edgesWithTheSameLine)
+
+
+    #sprawdzamy ogólnie najszybsze połączenie z tych, co są w przyszłości
+    #więc najpierw odsiewamy wszystkie, które są w przyszłości
+    edgesWithTheSameEndInTheFutureIndex=None
+    for i in range(len(edgesWithTheSameEnd)):
+        if edgesWithTheSameEnd[i]._departure_time()>=nodeFromTime:
+            edgesWithTheSameEndInTheFutureIndex=i
             break
-    if chosenEdge==None:
-        chosenEdge=edgesWithTheSameEnd[0]
+    
+    #jeżeli są jakieś w przyszłości tego samego dnia...
+    if not edgesWithTheSameEndInTheFutureIndex==None:
+        #(ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą)
+        #szukamy linii z najszybszym przyjazdem (ale z tych, których odjazd jest przed północą)
+        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], nodeFromTime)
+
+    #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
+    else:
+        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd)
+
+    # #Poniższego jednak nie
+    # #sprawdzamy, czy najszybsze połączenie z tą samą linią, jest faktycznie jednym z najszybszych możliwych połączeń
+    # #przyjazd chosenEdge jest na pewno najszybszym z możliwych
+    # #I warunek: szybszy przyjazd
+    # if(chosenEdgeWithTheSameLine._arrival_time()<=chosenEdge._arrival_time()):
+    #     #II warunek: czy w obu przypadkach wyjazd jest tego samego dnia, co przyjazd
+    #     if(chosenEdgeWithTheSameLine._departure_time()<chosenEdgeWithTheSameLine._arrival_time() and chosenEdge._departure_time()<chosenEdge._arrival_time()):
+
+    #zwracamy różnicę czasu i wybrane połączenie
     chosenEdgeArrTime=hourToSeconds(chosenEdge._arrival_time()) #tutaj muszą być posortowane
     return [abs(chosenEdgeArrTime - hourToSeconds(node['arrivalTime'])), chosenEdge]
-    
+
+#listOfEdges nie może być pusta!!
+def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
+
+    fastestEdgeArrival='23:59:59'
+    fastestEdgeArrivalIndex=None
+
+    for i in range(len(listOfEdges)):
+        if listOfEdges[i]._arrival_time()<fastestEdgeArrival:
+            if(not nodeFromTime==None):
+                #chcemy uniknać sytuacji, że wybierze linię, która przyjeżdża o np. 00:00:01, a wyjeżdża o 23:59:59, jeżeli są lepsze opcje 
+                #(bo taka linia przyjeżdża o najszybszej godzinie, ale najszybszej w następnym dniu)
+                if listOfEdges[i]._arrival_time()>nodeFromTime:
+                    fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                    fastestEdgeArrivalIndex=i
+            else:
+                #ta sytuacja ma miejsce, gdy przyjechaliśmy na przystanek i nie ma już żadnych linii tego dnia
+                #chcemy uniknać sytuacji, że wybierze linię, która najszybciej przyjeżdża, bo wyjeżdża poprzedniego dnia
+                # if listOfEdges[i]._departure_time()>'00:00:00': #TODO: TU JEST ŹLE! POPRAW W POZOSTAŁYCH!!! -> trzeba zakomentować tę linijkę i usunać wcięcie w dwóch wierszach poniżej
+                fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                fastestEdgeArrivalIndex=i
+            
+    # if(fastestEdgeArrivalIndex==None):
+    #     list(map(lambda x: print(f'dep: {x._departure_time()}, arr: {x._arrival_time()}', listOfEdges)))
+                    
+    #jeżeli były tylko takie opcje, które wyjeżdżają jednego dnia, a dojeżdżają drugiego...
+    if(fastestEdgeArrivalIndex==None and not nodeFromTime==None):
+        #wybieramy tą z najszybszym dojazdem
+        fastestEdgeArrival='23:59:59'
+        for i in range(len(listOfEdges)):
+            if listOfEdges[i]._arrival_time()<fastestEdgeArrival:
+                fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                fastestEdgeArrivalIndex=i
+
+    return listOfEdges[fastestEdgeArrivalIndex]
 
 
 def addToSortedEdgesList(edge, edgesToCheck):
