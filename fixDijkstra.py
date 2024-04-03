@@ -130,70 +130,149 @@ def hourToSeconds(time):
 
     return seconds
 
-
+dijkstraAlgTimeCalculations=None
 def dijkstraAlg(start, end, normalizedGraph, startTime):
+
+    dijkstraAlgStartCalculations=time.time_ns()
 
     start['g']=0
     start['arrivalTime']=secondsToHour(startTime)
 
-    #Lista nazw wierzchołków
+    #słownik nazw wierzchołków (wraz z referencją do normalized graph) (budowa wierzchołka)
     qList=[]
 
     #ustawiamy g (czyli koszt najkrótszej ścieżki od startu do danego węzła) 
     #dla każdego węzła grafu, poza węzłem startowym
-    #to mogę też chyba robić od razu, gdy tworzę noda tzn. ustawiać g na nieskończoność)
+    #(to mogę też chyba robić od razu, gdy tworzę noda tzn. ustawiać g na nieskończoność)
     for node in normalizedGraph:
         if not node==start['name']:
             normalizedGraph[node]['g']=float('inf')
             qList.append(node)
 
-    previousNode=start
+    #na początku wybranym węzłem będzie start
+    chosen_node=start
 
 
     while len(qList)>0:
 
-        #następnym wybranym węzłem będzie ten, o najmniejszym koszcie g
-        next_node=None
-        next_node_cost=float('inf')
+        # chosenEdge=None
 
-        chosenEdge=None
+        #dla każdego sąsiada wybranego węzła, wybieramy najszybszą trasę
+        #oraz zapisujemy rodzica i dane wybranej krawędzi (jeżeli jest to lepsze połączenie,
+        #niż te wybrane wcześniej, tzn. gdy wybrano połączenie, które da mniejsze g)
+        for node in chosen_node['neighbours']:
 
-        #TODO: tutaj też chcemy zapisać, do jakich węzłów jest już dostęp i przypisać im g (potem będziemy sprawdzać, czy istnieje szybszy dostęp do g)
-        #najpierw posortujmy wszystkie krawędzie
-        edgesSortedByDeparture=[] 
-        for edge in previousNode['edges']:
-            edgesSortedByDeparture=addToSortedEdgesList(edge, edgesSortedByDeparture) 
+            #nie wracamy do już odwiedzonych wierzchołków
+            if (node in qList):
+                next_node=normalizedGraph[node]
+                chosenEdge = chooseEdgeWithFAForSpecificNode(chosen_node, next_node)
 
-        #musimy znaleźć wszystkie krawędzie, które mają wyjazd w przyszłości
-        edgesInTheFutureIndex=None
-        for i in range(len(edgesSortedByDeparture)):
-            if edgesSortedByDeparture[i]._departure_time()>=previousNode['arrivalTime']:
-                edgesInTheFutureIndex=i
-                break
-
-        #jeżeli są jakieś w przyszłości tego samego dnia...
-        if not edgesInTheFutureIndex==None:
-            #ponieważ edgesSortedByDeparture jest posortowane czasem wyjazdu, pozostałe tablice też będą
-            #szukamy linii z najszybszym przyjazdem (ale z przyjazdem w tym samym dniu lub z wyjazdem w tym samym dniu i przyjazdem w następnym)
-            chosenEdge=chooseEdgeWithFastestArrival(edgesSortedByDeparture[edgesInTheFutureIndex:len(edgesSortedByDeparture)], previousNode['arrivalTime'])
-
-        #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
-        else:
-            chosenEdge=chooseEdgeWithFastestArrival(edgesSortedByDeparture)
+                if next_node['g']>chosen_node['g'] + abs(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(chosen_node['arrivalTime'])):
+                    next_node['g']=chosen_node['g'] + abs(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(chosen_node['arrivalTime']))
+                    next_node['parent'] = chosen_node
+                    next_node['departureTime']=chosenEdge._departure_time()
+                    next_node['arrivalTime'] = chosenEdge._arrival_time()
+                    next_node['departureLine'] = chosenEdge._line()
+                    next_node['arrivalLine'] = chosenEdge._line() #zapis tego nie jest konieczny
+                    next_node['edgeId'] = chosenEdge._id()
 
 
+        # #to było trochę źle zrozumiane -> przeniosłem do funkcji
+        # #TODO: tutaj też chcemy zapisać, do jakich węzłów jest już dostęp i przypisać im g (potem będziemy sprawdzać, czy istnieje szybszy dostęp do g)
+        # #najpierw posortujmy wszystkie krawędzie węzła previousNode
+        # edgesSortedByDeparture=[] 
+        # for edge in previousNode['edges']:
+        #     #wierzchołków, w których już byliśmy, nie sprawdzamy
+        #     if (edge._end_node()._stop_name() in qList):
+        #         edgesSortedByDeparture=addToSortedEdgesList(edge, edgesSortedByDeparture) 
 
-        #PO WYBRANIU WĘZŁA DOCELOWEGO
+        # #musimy znaleźć wszystkie krawędzie, które mają wyjazd w przyszłości
+        # edgesInTheFutureIndex=None
+        # for i in range(len(edgesSortedByDeparture)):
+        #     if edgesSortedByDeparture[i]._departure_time()>=previousNode['arrivalTime']:
+        #         edgesInTheFutureIndex=i
+        #         break
+
+        # #jeżeli są jakieś w przyszłości tego samego dnia...
+        # if not edgesInTheFutureIndex==None:
+        #     #ponieważ edgesSortedByDeparture jest posortowane czasem wyjazdu, pozostałe tablice też będą
+        #     #szukamy linii z najszybszym przyjazdem (ale z przyjazdem w tym samym dniu lub z wyjazdem w tym samym dniu i przyjazdem w następnym)
+        #     chosenEdge=chooseEdgeWithFastestArrival(edgesSortedByDeparture[edgesInTheFutureIndex:len(edgesSortedByDeparture)], previousNode['arrivalTime'])
+
+        # #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
+        # else:
+        #     chosenEdge=chooseEdgeWithFastestArrival(edgesSortedByDeparture)
+
+
+
+        # #PO WYBRANIU WĘZŁA DOCELOWEGO
         
-        if(not chosenEdge==None):
-            chosenNode=normalizedGraph[chosenEdge._end_node()._stop_name()]
-            qList.remove[chosenNode['name']]
-            if(chosenNode['g']<previousNode['g']+(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(previousNode['arrivalTime']))):
-                chosenNode['g']=previousNode['g']+(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(previousNode['arrivalTime']))
+        # # if(not chosenEdge==None):
+        # chosenNode=normalizedGraph[chosenEdge._end_node()._stop_name()]
+        # qList.remove[chosenNode['name']]
+        # if(chosenNode['g']>previousNode['g']+(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(previousNode['arrivalTime']))):
+        #     chosenNode['g']=previousNode['g']+(hourToSeconds(chosenEdge._arrival_time()) - hourToSeconds(previousNode['arrivalTime']))
         
 
-        #na koniec trzeba ustawić previous noda na
+        # #na koniec trzeba ustawić previous noda na chosenNode
+        # #previousNode = chosenNode
 
+
+        #na koniec wybieramy kolejny węzeł, ktorego sąsiadów będziemy sprawdzać
+        #wybranym węzłem będzie ten, o najmniejszym koszcie g
+        chosen_node=None
+        chosen_node_cost=float('inf')
+
+        for node in qList:
+            if normalizedGraph[node]['g']<chosen_node_cost:
+                chosen_node_cost= normalizedGraph[node]['g']
+                chosen_node = normalizedGraph[node]
+
+        #usuwamy wybrany węzeł z listy qList
+        qList.remove(chosen_node['name'])
+
+        if chosen_node['name'] ==end['name']:
+            dijkstraAlgEndCalculations=time.time_ns()
+            global dijkstraAlgTimeCalculations
+            dijkstraAlgTimeCalculations = dijkstraAlgEndCalculations - dijkstraAlgStartCalculations
+            #TODO: wypisz drogę
+            printSolution(chosen_node, end['name'])
+            break
+
+def chooseEdgeWithFAForSpecificNode(nodeFrom, nodeTo):
+        
+    nodeFromTime = nodeFrom['arrivalTime']
+    chosenEdge=None
+
+    #szukamy połączeń, które prowadzą do przystanku docelowego
+    #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    #a jest sąsiadem, jeżeli ma wspólną krawędź
+    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+    for edge in nodeFrom['edges']:
+        if(edge._end_node()._stop_name()==nodeTo['name']):
+            edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)
+
+
+    #wybieramy najszybsze z tych, co są w przyszłości
+    #więc najpierw odsiewamy wszystkie, które są w przyszłości
+    edgesWithTheSameEndInTheFutureIndex=None
+    for i in range(len(edgesWithTheSameEnd)):
+        if edgesWithTheSameEnd[i]._departure_time()>=nodeFromTime:
+            edgesWithTheSameEndInTheFutureIndex=i
+            break
+    
+    #jeżeli są jakieś w przyszłości tego samego dnia...
+    if not edgesWithTheSameEndInTheFutureIndex==None:
+        #ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą
+        #szukamy linii z najszybszym przyjazdem (ale z przyjazdem w tym samym dniu)
+        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], nodeFromTime)
+
+    #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
+    else:
+        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd)
+    
+    return chosenEdge
+    #tu skończyłem
 
 #listOfEdges nie może być pusta!!
 def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
@@ -212,9 +291,9 @@ def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
             else:
                 #ta sytuacja ma miejsce, gdy przyjechaliśmy na przystanek i nie ma już żadnych linii tego dnia
                 #chcemy uniknać sytuacji, że wybierze linię, która najszybciej przyjeżdża, bo wyjeżdża poprzedniego dnia
-                if listOfEdges[i]._departure_time()>'00:00:00':
-                    fastestEdgeArrival=listOfEdges[i]._arrival_time()
-                    fastestEdgeArrivalIndex=i
+                #if listOfEdges[i]._departure_time()>'00:00:00': #TODO: TU JEST ŹLE! POPRAW W POZOSTAŁYCH!!! -> trzeba zakomentować tę linijkę i usunać wcięcie w dwóch wierszach poniżej
+                fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                fastestEdgeArrivalIndex=i
             
     # if(fastestEdgeArrivalIndex==None):
     #     list(map(lambda x: print(f'dep: {x._departure_time()}, arr: {x._arrival_time()}', listOfEdges)))
@@ -253,6 +332,19 @@ def validateTime(time):
             time[0]=f'0{time[0]}'
         return f'{time[0]}:{time[1]}:{time[2]}'
 
+# #WAŻNE!: zawsze przystanek, z którego wysiadamy jest przystankiem, na którym wsiadamy
+def printSolution(node, endName):
+    if(node['parent']==None):
+        print(f" Przystanek: {node['name']}, na przystanku: {node['arrivalTime']}, ", end="")
+    else:
+        printSolution(node['parent'], endName)
+        print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}')
+        print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
+        if (node['name']==endName):
+            time.sleep(0.1)
+            print(f'Wartośc g dla tego rozwiazania= {node['g']} s', file=sys.stderr)
+            print(f'Czas obliczeń algorytmu= {dijkstraAlgTimeCalculations * (10**(-9))} s', file=sys.stderr)
+
 if __name__=='__main__':
     normalizedGraph=buildGraphFromCSV('connection_graph.csv')
     while True:
@@ -272,16 +364,16 @@ if __name__=='__main__':
         if(option=='s'):
             break
         else:
-            for node in normalizedGraph:
-                normalizedGraph[node]['f']=None
-                normalizedGraph[node]['g']=None
-                normalizedGraph[node]['h']=None
-                normalizedGraph[node]['parent']=None
-                normalizedGraph[node]['departureTime']=None
-                normalizedGraph[node]['departureLine']=None
-                normalizedGraph[node]['edgeId']=None
-                normalizedGraph[node]['startNodeStartTime']=None
-                normalizedGraph[node]['arrivalLine']=None
-                normalizedGraph[node]['arrivalTime']=None
-                normalizedGraph[node]['howFarFromStart']=None
-                normalizedGraph[node]['g/hFFS']=None
+            for nodeFrom in normalizedGraph:
+                normalizedGraph[nodeFrom]['f']=None
+                normalizedGraph[nodeFrom]['g']=None
+                normalizedGraph[nodeFrom]['h']=None
+                normalizedGraph[nodeFrom]['parent']=None
+                normalizedGraph[nodeFrom]['departureTime']=None
+                normalizedGraph[nodeFrom]['departureLine']=None
+                normalizedGraph[nodeFrom]['edgeId']=None
+                normalizedGraph[nodeFrom]['startNodeStartTime']=None
+                normalizedGraph[nodeFrom]['arrivalLine']=None
+                normalizedGraph[nodeFrom]['arrivalTime']=None
+                normalizedGraph[nodeFrom]['howFarFromStart']=None
+                normalizedGraph[nodeFrom]['g/hFFS']=None
