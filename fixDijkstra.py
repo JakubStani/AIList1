@@ -236,7 +236,7 @@ def dijkstraAlg(start, end, normalizedGraph, startTime):
             global dijkstraAlgTimeCalculations
             dijkstraAlgTimeCalculations = dijkstraAlgEndCalculations - dijkstraAlgStartCalculations
             #TODO: wypisz drogę
-            printSolution(chosen_node, end['name'])
+            printSolutionDijkstra(chosen_node, end['name'])
             break
 
 def chooseEdgeWithFAForSpecificNode(nodeFrom, nodeTo):
@@ -333,11 +333,11 @@ def validateTime(time):
         return f'{time[0]}:{time[1]}:{time[2]}'
 
 # #WAŻNE!: zawsze przystanek, z którego wysiadamy jest przystankiem, na którym wsiadamy
-def printSolution(node, endName):
+def printSolutionDijkstra(node, endName):
     if(node['parent']==None):
         print(f" Przystanek: {node['name']}, na przystanku: {node['arrivalTime']}, ", end="")
     else:
-        printSolution(node['parent'], endName)
+        printSolutionDijkstra(node['parent'], endName)
         print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}')
         print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
         if (node['name']==endName):
