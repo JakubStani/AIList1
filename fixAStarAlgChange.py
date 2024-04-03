@@ -209,9 +209,9 @@ def chooseEdgeWithFastestArrival(listOfEdges, nodeFromTime=None):
             else:
                 #ta sytuacja ma miejsce, gdy przyjechaliśmy na przystanek i nie ma już żadnych linii tego dnia
                 #chcemy uniknać sytuacji, że wybierze linię, która najszybciej przyjeżdża, bo wyjeżdża poprzedniego dnia
-                if listOfEdges[i]._departure_time()>'00:00:00':
-                    fastestEdgeArrival=listOfEdges[i]._arrival_time()
-                    fastestEdgeArrivalIndex=i
+                # if listOfEdges[i]._departure_time()>'00:00:00': #TODO: TU JEST ŹLE! POPRAW W POZOSTAŁYCH!!! -> trzeba zakomentować tę linijkę i usunać wcięcie w dwóch wierszach poniżej
+                fastestEdgeArrival=listOfEdges[i]._arrival_time()
+                fastestEdgeArrivalIndex=i
             
     # if(fastestEdgeArrivalIndex==None):
     #     list(map(lambda x: print(f'dep: {x._departure_time()}, arr: {x._arrival_time()}', listOfEdges)))
