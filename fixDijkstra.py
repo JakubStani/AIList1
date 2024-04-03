@@ -264,7 +264,7 @@ def chooseEdgeWithFAForSpecificNode(nodeFrom, nodeTo):
     #jeżeli są jakieś w przyszłości tego samego dnia...
     if not edgesWithTheSameEndInTheFutureIndex==None:
         #ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą
-        #szukamy linii z najszybszym przyjazdem (ale z przyjazdem w tym samym dniu)
+        #szukamy linii z najszybszym przyjazdem (ale z tych, których odjazd jest przed północą)
         chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], nodeFromTime)
 
     #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
