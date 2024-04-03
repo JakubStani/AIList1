@@ -1,4 +1,4 @@
-from main import *
+from mainPrevious import *
 #heurystyka to przesiadki (i g też)
 def aStarAlgChange(start, end, graph, startTime): #start i end to znormalizowane węzły
 

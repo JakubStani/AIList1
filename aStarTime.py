@@ -1,4 +1,4 @@
-from main import *
+from mainPrevious import *
 
 # TODO: g to koszt dotarcia, a koszt dotarcia do startu powinien wynosić 0 !!! (popra to jakoś, może np. normalizuj od danej godziny)
 mpkBusAvgVelocity=21.3

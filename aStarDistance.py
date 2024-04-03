@@ -1,6 +1,6 @@
 import math
 import time
-from main import validateTime
+from mainPrevious import validateTime
 
 #nowa wersja -> działa właściwie; heurystyka to odległość (i g też)
 def aStarAlg(start, end, graph): #start i end to znormalizowane węzły
