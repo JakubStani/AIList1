@@ -285,8 +285,8 @@ def addToSortedEdgesList(edge, edgesToCheck):
         
 #IMP: kod z gemini
 def secondsToHour(seconds):
-    return validateTime(time.strftime('%H:%M:%S', time.gmtime(seconds))
-)
+    return validateTime(time.strftime('%H:%M:%S', time.gmtime(seconds)))
+
 #IMP: kod ze strony: https://www.geeksforgeeks.org/convert-a-datetime-object-to-seconds/
 def hourToSeconds(time):
     timeDateObject = datetime.strptime(time, "%H:%M:%S")
