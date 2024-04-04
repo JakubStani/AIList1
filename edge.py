@@ -17,9 +17,9 @@ class Edge:
         #IMP: zerknąłem na czyjś kod (sprawdziłem, jakich funkcji użył do zamiany stringa na czas i czasu na sekundy)
         self.time_diff = (abs(datetime.strptime(self.arrival_time, '%H:%M:%S') - datetime.strptime(self.departure_time, '%H:%M:%S'))).total_seconds()
 
-        #TODO:to chyba źle liczy
-        #acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
-        #IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
+        #obliczenie dystansu (w km) od węzła początkowego,
+        #do końcowego za pomocą wzoru "Haversine formula" 
+        #(źródło: https://www.youtube.com/watch?v=HaGj0DjX8W8)
         lat1 = float(start_node._stop_lat()) * math.pi / 180
         lon1 = float(start_node._stop_lon()) * math.pi / 180
         lat2 = float(end_node._stop_lat()) * math.pi / 180
