@@ -535,15 +535,35 @@ def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
     lon1 = degreesToRadians(normalizedNodeFrom['averageLon'])
     lat2 = degreesToRadians(normalizedNodeTo['averageLat'])
     lon2 = degreesToRadians(normalizedNodeTo['averageLon'])
+    print(f'hv: {haversine(lat1, lon1, lat2, lon2)}')
+    return haversine(lat1, lon1, lat2, lon2)
 
     #zwrócenie obliczonej wartości odległości 
     #między węzłami w km
+    print((math.sin(lat1) * math.sin(lat2)) + math.cos(lat1) * math.cos(lat2) *math.cos(lon1 - lon2))
     return (
-        3440.1 * math.acos( 
-            (math.sin(lat1) * math.sin(lat2)) +
-            math.cos(lat1) * math.cos(lat2) *
-            math.cos(lon1 - lon2)) *nauticalMileToKilometers
-    )
+        3440.1 * math.acos((math.sin(lat1) * math.sin(lat2)) + math.cos(lat1) * math.cos(lat2) *math.cos(lon1 - lon2)) *nauticalMileToKilometers)
+
+#UWAGA: Kod z gemini
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Oblicza odległość między dwoma punktami na powierzchni kuli.
+
+    Argumenty:
+        φ1: szerokość geograficzna pierwszego punktu (w radianach)
+        λ1: długość geograficzna pierwszego punktu (w radianach)
+        φ2: szerokość geograficzna drugiego punktu (w radianach)
+        λ2: długość geograficzna drugiego punktu (w radianach)
+
+    Wyjście:
+        Odległość między punktami (w radianach)
+    """
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(min(1, math.sqrt(a)))
+    return 6371 * c
 
 #zamiana zapisu współrzędnych geograficznych
 #ze stopniowego, na zapis w radianach
@@ -1021,10 +1041,10 @@ def printWholeGraph(normalizedGraph):
 ###     koniec wspólnych dla algorytmów funkcji
 
 if __name__=='__main__':
-    # printWholeGraph(buildGraphFromCSV('test_data_file.csv'))
+    printWholeGraph(buildGraphFromCSV('test_data_file.csv'))
 
     #zbudowanie grafu
-    normalizedGraph=buildGraphFromCSV('connection_graph.csv')
+    normalizedGraph=buildGraphFromCSV('test_data_file.csv')
 
     #dalej program działą w pętli, aby móc wyszukiwać połączenia,
     #bez potrzeby ponownego budowania grafu
