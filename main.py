@@ -449,13 +449,6 @@ def aStarAlgTime(start, end, graph, startTime):
                 #koszt najkorzystniejszego połączenia (tzn. gTDResult[0])
                 node_next_normalized_graph['f']=nnH + node['g'] + gTDResult[0]
 
-                # node_next_normalized_graph['g']=node['g'] + gTDResult[0] #!
-                # node_next_normalized_graph['parent']=node #!
-                # node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time() #!
-                # node_next_normalized_graph['edgeId']=gTDResult[1]._id() #!
-                # node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time() #!
-                # node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}' #!
-
                 #dodajemy sąsiada do listy otwartej
                 list_open.append(node_next_normalized_graph)
 
@@ -468,13 +461,6 @@ def aStarAlgTime(start, end, graph, startTime):
                     #zapisujemy w nim (u sąsiada) dane, dotyczące połączenia przychodzacego od wybranego węzła node,
                     #korzystając z funkcji "saveEdgeDataInNextNode"
                     node_next_normalized_graph=saveEdgeDataInNextNode(node_next_normalized_graph, node, gTDResult)
-
-                    # node_next_normalized_graph['g']=node['g'] +gTDResult[0] #!
-                    # node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time() #!
-                    # node_next_normalized_graph['parent']=node #!
-                    # node_next_normalized_graph['edgeId']=gTDResult[1]._id() #!
-                    # node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time() #!
-                    # node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}' #!
 
                     #ustawiamy f sąsiada na g sąsiada + h sąsiada
                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
@@ -786,42 +772,6 @@ def aStarAlgChange(start, end, graph, startTime): #start i end to znormalizowane
                         list_open.append(node_next_normalized_graph)
                         list_closed.remove(node_next_normalized_graph)
 
-# #zapisuje w node_next_normalized_graph dane, 
-# #dotyczące połączenia przychodzacego od wybranego węzła node
-# def saveEdgeDataInNextNodeASChange(node_next_normalized_graph, node, gCh, graph):
-
-
-#     #zapisanie długości trasy (w km) do danego węzła
-#     node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
-
-#     #ustawiamy g sąsiada na g wybranego węzła node + 
-#     #koszt najkorzystniejszego połączenia (tzn. gCh[0])
-#     #przy czym koszt, to różnica (w sekundach) między czasem przyjazdu do node,
-#     #a czasem przyjazdu do node next
-#     node_next_normalized_graph['g']=node['g'] + gCh[0]
-
-#     #obliczenie współczynnika "g/hFFs", dzięki któremy będziemy mogli
-#     #obliczyć heurystykę h
-#     node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart']
-
-#     #obliczenie h danego węzła, za pomocą funkcji "calculateHChange"
-#     node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
-
-#     #ustawienie f sąsiada na g sąsiada + h sąsiada
-#     node_next_normalized_graph['f']=node_next_normalized_graph['h'] + node_next_normalized_graph['g']
-
-#     #ustawienie sąsiadowi wybranego węzła node, jako rodzica
-#     node_next_normalized_graph['parent']=node
-
-#     #zapisujemy odpowiednie dane krawędzi do sąsiada
-#     node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time()
-#     node_next_normalized_graph['edgeId']=gCh[1]._id()
-#     node_next_normalized_graph['departureTime']=gCh[1]._departure_time()
-#     node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}'
-
-#     #zwrócenie sąsiada z naniesionymi zmianami
-#     return node_next_normalized_graph
-
 #przewiduje, ile przesiadek zostało do węzła docelowego z danego węzła
 def calculateHChange(node_next_normalized_graph, end, graph):
 
@@ -864,7 +814,7 @@ def getChanges(node, node_next_normalized_graph):
     #a do węzła początkowego żadna krawędź nie wchodzi)
     if(not node['departureLine']==None):
         for edge in edgesWithTheSameEnd:
-            if(f'{edge._company()} {edge._line()}'==node['departureLine']): #departureLine, to linia, którą się przyjechało do node (bo kolejne węzły zapamiętują poprzednie krawędzie)
+            if(f'{edge._company()} {edge._line()}'==node['departureLine']):
                 edgesWithTheSameLine.append(edge)
 
     
@@ -884,7 +834,11 @@ def getChanges(node, node_next_normalized_graph):
             #których odjazd jest przed północą, lecz w przyszłości, 
             #tzn. po czasie pojawienia się na węźle początkowym krawędzi)
             #za pomocą funkcji "chooseEdgeWithFastestArrival"
-            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameLine[edgesWithTheSameLineInTheFutureIndex:len(edgesWithTheSameLine)], node['arrivalTime'])
+            chosenEdge=chooseEdgeWithFastestArrival(
+                edgesWithTheSameLine[
+                    edgesWithTheSameLineInTheFutureIndex:len(edgesWithTheSameLine)
+                    ], 
+                node['arrivalTime'])
 
         #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
         else:
@@ -910,7 +864,10 @@ def getChanges(node, node_next_normalized_graph):
             #których odjazd jest przed północą, lecz w przyszłości, 
             #tzn. po czasie pojawienia się na węźle początkowym krawędzi)
             #za pomocą funkcji "chooseEdgeWithFastestArrival"
-            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], node['arrivalTime'])
+            chosenEdge=chooseEdgeWithFastestArrival(
+                edgesWithTheSameEnd[
+                    edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)
+                    ], node['arrivalTime'])
 
         #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
         else:
