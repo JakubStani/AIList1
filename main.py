@@ -525,9 +525,6 @@ def calculateHTime(node_next_normalized_graph, end):
 #(źródło: https://www.youtube.com/watch?v=HaGj0DjX8W8)
 def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
 
-    #przyjęta wartość jednej mili morskiej w  km
-    nauticalMileToKilometers=1.852
-
     #zamiana zapisu współrzędnych geograficznych danego węzła
     #i węzła docelowego ze stopniowego, na zapis w radianach
     #za pomocą funkcji "degreesToRadians"
@@ -538,12 +535,28 @@ def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
 
     #zwrócenie obliczonej wartości odległości 
     #między węzłami w km
-    return (
-        3440.1 * math.acos( 
-            (math.sin(lat1) * math.sin(lat2)) +
-            math.cos(lat1) * math.cos(lat2) *
-            math.cos(lon1 - lon2)) *nauticalMileToKilometers
-    )
+    return haversine(lat1, lon1, lat2, lon2)
+
+#UWAGA: Kod z gemini
+def haversine(lat1, lon1, lat2, lon2):
+    """
+    Oblicza odległość między dwoma punktami na powierzchni kuli.
+
+    Argumenty:
+        φ1: szerokość geograficzna pierwszego punktu (w radianach)
+        λ1: długość geograficzna pierwszego punktu (w radianach)
+        φ2: szerokość geograficzna drugiego punktu (w radianach)
+        λ2: długość geograficzna drugiego punktu (w radianach)
+
+    Wyjście:
+        Odległość między punktami (w radianach)
+    """
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(min(1, math.sqrt(a)))
+    return 6371 * c
 
 #zamiana zapisu współrzędnych geograficznych
 #ze stopniowego, na zapis w radianach
