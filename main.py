@@ -110,26 +110,7 @@ def addToNormalizedGraph(edge, normalizedGraph):
     #nie ma jeszcze w grafie (jako klucz), dodajemy go 
     #za pomocą "addNewNodeToNormG"
     if(not(edge._start_node()._stop_name() in normalizedGraph)):
-        # #stary zapis
-        # normalizedGraph[edge._start_node()._stop_name()]={
-        #     'nodes': [edge._start_node()],
-        #     'edges': [edge],
-        #     'neighbours': set([edge._end_node()._stop_name()]),
-        #     'name': edge._start_node()._stop_name(),
-        #     'f': None,
-        #     'g':None,
-        #     'h':None,
-        #     'parent':None,
-        #     'departureTime': None,
-        #     'departureLine': None,
-        #     'arrivalLine': None,
-        #     'arrivalTime': None,
-        #     'edgeId': None,
-        #     'howFarFromStart': None,
-        #     'g/hFFS': None
-        #     }
         
-        #nowy zapis
         normalizedGraph=addNewNodeToNormG(
             edge._start_node()._stop_name(), 
             [edge._start_node()], [edge], 
@@ -160,26 +141,7 @@ def addEndNodeToNormalizedGraph(end_node, normalizedGraph, edge):
     #nie ma jeszcze w grafie (jako klucz), dodajemy go 
     #za pomocą "addNewNodeToNormG"
     if(not(end_node._stop_name() in normalizedGraph)):
-        # #poprzedni zapis
-        # normalizedGraph[end_node._stop_name()]={
-        #     'nodes': [end_node],
-        #     'edges': [],
-        #     'neighbours': set(),
-        #     'name': end_node._stop_name(),
-        #     'f': None,
-        #     'g':None,
-        #     'h':None,
-        #     'parent':None,
-        #     'departureTime': None,
-        #     'departureLine': None,
-        #     'arrivalLine': None,
-        #     'arrivalTime': None,
-        #     'edgeId': None,
-        #     'howFarFromStart': None,
-        #     'g/hFFS': None
-        #     }
         
-        #nowy zapis
         normalizedGraph=addNewNodeToNormG(
             end_node._stop_name(), 
             [end_node], 
@@ -385,97 +347,197 @@ def printSolutionDijkstra(node, endName):
 
 ###     algorytm aStarTime
 
-#TODO: zaimplementuj, aby wybierało linię, która ma najszybszy dojazd z linii z przyszłości
-#pomysł na skrócenie czasu obliczeń-> od razu wstawianie do listy otwartej tak, żeby było sortowanie przez wstawianie
-mpkBusAvgVelocity=21.3
+
+#średnia prędkość autobusów i tramwajów we Wrocławiu
+busAndTrumAvgVelocity=19.5
+
+#zmienna, która będzie przechowywać czas obliczeń funkcji
 aStarTimeCalculations=None
-#nowa wersja -> heurystyka to czas (i g też)
-def aStarAlgTime(start, end, graph, startTime): #start i end to znormalizowane węzły
+
+#algorytm A* z kryterium optymalizacji czasu
+#heurystyka to czas (i g też) w sekundach
+#start i end to znormalizowane węzły
+def aStarAlgTime(start, end, graph, startTime):
+    #zmienna przechowująca czas rozpoczęcia obliczeń funkcji aStarAlgTime
     aStarAlgStartsCalculations=time.time_ns()
 
+    #w liście otwartej zapisywane będą węzły odwiedzone, 
+    #których wszyscy sąsiedzi nie zostali jeszcze odwiedzeni
     list_open=[]
+
+    #w liście zamkniętej zapisywane będą węzły odwiedzone, 
+    #których wszyscy sąsiedzi zostali już odwiedzeni
     list_closed=[]
 
-    start['g']=0 #startTime #tutaj jest zmiana, bo musimy być o którejś godzinie
+    #ustawienie g (kosztu dojścia do danego wierzchołka od startu)
+    #węzła początkowego na wartość 0
+    #(w tej wersji algorytmu g to czas dojazdu
+    #od węzła początkowego do danego węzła w sekundach)
+    start['g']=0
+
+    #ustawienie czasu pojawienia się na przystanku początkowym
+    #na wartość startTime, przedstawioną za pomocą godziny 
+    #o formacie HH:MM:SS (wykorzystując funkcję "secondsToHour")
     start['arrivalTime']=secondsToHour(startTime)
-    print(f'start time: {secondsToHour(startTime)} {startTime}= startTime')
+    
+    #ustawienie h (kosztu dojścia z danego wierzchołka do celu)
+    #węzła początkowego na wartość 0
+    #(w tej wersji algorytmu h to przewidywany czas dojazdu
+    #od danego węzła do węzła docelowego w sekundach)
     start['h']=0
+
+    #przypisanie wartości funkcji kosztu węzła początkowego
+    #na równą g + h węzła początkowego
     start['f']=start['g']+start['h']
 
+    #dodanie węzła początkowego do listy otwartej
+    list_open.append(start)
 
-    list_open=[start]
-
+    #dopóki są węzły w liście otwartej
     while len(list_open) > 0:
-        node = None #to będzie znormalizowany węzeł
+
+        #za pomocą node_cost będziemy szukać węzła z listy otwartej
+        #o najmniejszym g, po czym przypiszemy go do zmiennej node
+        node = None 
         node_cost=float('inf')
 
+        #szukamy wezła z listy otwartej o najmniejszym g
         for test_node in list_open:
             if (test_node['f']<node_cost):
                 node = test_node
                 node_cost = test_node['f']
+
+        #jeżeli wybrany węzeł (tzn. ten o najmniejszym g z listy otwartej)
+        #jest węzłem końcowym, to znaczy, że algorytm znalazł rozwiązanie,
+        #więc je wyświetla funkcją "printSolution"
         if node['name'] == end['name']:
             aStarAlgEndsCalculations=time.time_ns()
             global aStarTimeCalculations
             aStarTimeCalculations=aStarAlgEndsCalculations-aStarAlgStartsCalculations
             print('Rozwiązanie:')
-            printSolution(node, end['name'])
+            printSolutionAStarTime(node, end['name'])
             break
 
-        #TODO: be able to find this node
+        #usuwamy wybrany węzeł z listy otwartej
+        #i dodajemy go do listy zamkniętej
         list_open.remove(node)
         list_closed.append(node)
 
-        #zapisuj co trzeba (arrival time itp.) ale w następnym nodzie
+        #sprawdzamy każdy węzeł, który jest sąsiadem wybranego węzła
         for node_next_name in node['neighbours']:
             node_next_normalized_graph=graph[node_next_name]
-            if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
+
+            #znajdujemy najkorzystniejsze połączenie (wyjazd w przyszłości, 
+            #jak najszybszy przyjazd, więc jednocześnie jak najmniejszy koszt)
+            #łączące wybrany węzeł node z sąsiadem, za pomocą "getTimeDiff"
+            gTDResult=getTimeDiff(node, node_next_normalized_graph)
+
+            #jeżeli danego sąsiada nie ma jeszcze w liscie otwartej ani zamkniętej (tzn. nie był jeszcze sprawdzony)...
+            if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed):
+                
+                #zapisujemy w nim (u sąsiada) dane, dotyczące połączenia przychodzacego od wybranego węzła node,
+                #korzystając z funkcji "saveEdgeDataInNextNode"
+                node_next_normalized_graph=saveEdgeDataInNextNode(node_next_normalized_graph, node, gTDResult)
+
+                #obliczamy h dla sąsiada, korzystając z funkcji "calculateHTime"
                 nnH=calculateHTime(node_next_normalized_graph, end)
-                gTDResult=getTimeDiff(node, node_next_normalized_graph)
-                nnG=node['g'] + gTDResult[0]
+
+                #przypisujemy obliczone h sąsiadowi
                 node_next_normalized_graph['h']=nnH
-                node_next_normalized_graph['g']=nnG
-                node_next_normalized_graph['f']=nnH + nnG
-                node_next_normalized_graph['parent']=node
-                node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time()
-                node_next_normalized_graph['edgeId']=gTDResult[1]._id()
-                node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time()
-                node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                # node['departureTime']=gTDResult[1]._departure_time()
-                # node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                # node['edgeId']=gTDResult[1]._id()
+
+                #ustawiamy f sąsiada na h sąsiada + g wybranego węzła node + 
+                #koszt najkorzystniejszego połączenia (tzn. gTDResult[0])
+                node_next_normalized_graph['f']=nnH + node['g'] + gTDResult[0]
+
+                # node_next_normalized_graph['g']=node['g'] + gTDResult[0] #!
+                # node_next_normalized_graph['parent']=node #!
+                # node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time() #!
+                # node_next_normalized_graph['edgeId']=gTDResult[1]._id() #!
+                # node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time() #!
+                # node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}' #!
+
+                #dodajemy sąsiada do listy otwartej
                 list_open.append(node_next_normalized_graph)
+
+            #jeżeli dany sąsiad jest już w liscie otwartej lub zamkniętej (tzn. był już sprawdzony)...
             else:
-                #co tu się dokładnie dzieje?
-                gTDResult=getTimeDiff(node,node_next_normalized_graph)
+                
+                #jeżeli g sąsiada jest większe, niż suma g wybranego węzłą node i kosztu najkorzystniejszej krawędzi...
                 if(node_next_normalized_graph['g']>node['g'] + gTDResult[0]):
-                    node_next_normalized_graph['g']=node['g'] +gTDResult[0]
-                    # node['departureTime']=gTDResult[1]._departure_time()
-                    # node['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                    # node['edgeId']=gTDResult[1]._id()
-                    node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time()
-                    node_next_normalized_graph['parent']=node
+
+                    #zapisujemy w nim (u sąsiada) dane, dotyczące połączenia przychodzacego od wybranego węzła node,
+                    #korzystając z funkcji "saveEdgeDataInNextNode"
+                    node_next_normalized_graph=saveEdgeDataInNextNode(node_next_normalized_graph, node, gTDResult)
+
+                    # node_next_normalized_graph['g']=node['g'] +gTDResult[0] #!
+                    # node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time() #!
+                    # node_next_normalized_graph['parent']=node #!
+                    # node_next_normalized_graph['edgeId']=gTDResult[1]._id() #!
+                    # node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time() #!
+                    # node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}' #!
+
+                    #ustawiamy f sąsiada na g sąsiada + h sąsiada
                     node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
-                    node_next_normalized_graph['edgeId']=gTDResult[1]._id()
-                    node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time()
-                    node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
-                    if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
+
+                    #jeżeli sąsiad jest w liscie zamkniętej...
+                    if(node_next_normalized_graph in list_closed):
+                        #dodajemy go do listy otwartej i usuwamy z zamkniętej
                         list_open.append(node_next_normalized_graph)
-                        list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
+                        list_closed.remove(node_next_normalized_graph)
 
-#acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1))*6371
-#IMP: powyższe ze strony: https://community.fabric.microsoft.com/t5/Desktop/How-to-calculate-lat-long-distance/td-p/1488227  
-#zwraca czas w sekundach                  
+#zapisuje w node_next_normalized_graph dane, 
+#dotyczące połączenia przychodzacego od wybranego węzła node
+def saveEdgeDataInNextNode(node_next_normalized_graph, node, gTDResult):
+
+    #ustawiamy g sąsiada na g wybranego węzła node + 
+    #koszt najkorzystniejszego połączenia (tzn. gTDResult[0])
+    #przy czym koszt, to różnica (w sekundach) między czasem przyjazdu do node,
+    #a czasem przyjazdu do node next
+    node_next_normalized_graph['g']=node['g'] + gTDResult[0]
+
+    #ustawiamy sąsiadowi wybrany węzeł node, jako rodzic
+    node_next_normalized_graph['parent']=node
+
+    #zapisujemy odpowiednie dane krawędzi do sąsiada
+    node_next_normalized_graph['arrivalTime']=gTDResult[1]._arrival_time()
+    node_next_normalized_graph['edgeId']=gTDResult[1]._id()
+    node_next_normalized_graph['departureTime']=gTDResult[1]._departure_time()
+    node_next_normalized_graph['departureLine']=f'{gTDResult[1]._company()} {gTDResult[1]._line()}'
+
+    #zwracamy sąsiada z naniesionymi zmianami
+    return node_next_normalized_graph
+
+#zwraca (w sekundach) przewidywany czas dojazdu 
+#z danego węzła, do węzła docelowego w linii prostej,    
+#korzystając z funkcji "calculateHDistance"          
 def calculateHTime(node_next_normalized_graph, end):
-    global mpkBusAvgVelocity
-    return (calculateHDistance(node_next_normalized_graph, end) / mpkBusAvgVelocity)*3600
 
+    #odniesienie do wcześniej ustalonej średniej prędkości
+    #wrocławskiej komunikacji
+    global busAndTrumAvgVelocity
+
+    #zwrócenie (w sekundach) przewidywanego czasu dojazdu
+    return (calculateHDistance(node_next_normalized_graph, end) / busAndTrumAvgVelocity)*3600
+
+#zwraca (w km) dystans między danym węzłem, a węzłem docelowym,
+#na podstawie ich współrzędnych geograficznych
+#UWAGA: poniższa funkcja na podstawie wzoru "Haversine formula" 
+#(źródło: https://www.youtube.com/watch?v=HaGj0DjX8W8)
 def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
+
+    #przyjęta wartość jednej mili morskiej w  km
     nauticalMileToKilometers=1.852
 
+    #zamiana zapisu współrzędnych geograficznych danego węzła
+    #i węzła docelowego ze stopniowego, na zapis w radianach
+    #za pomocą funkcji "degreesToRadians"
     lat1 = degreesToRadians(normalizedNodeFrom['averageLat'])
     lon1 = degreesToRadians(normalizedNodeFrom['averageLon'])
     lat2 = degreesToRadians(normalizedNodeTo['averageLat'])
     lon2 = degreesToRadians(normalizedNodeTo['averageLon'])
+
+    #zwrócenie obliczonej wartości odległości 
+    #między węzłami w km
     return (
         3440.1 * math.acos( 
             (math.sin(lat1) * math.sin(lat2)) +
@@ -483,22 +545,25 @@ def calculateHDistance(normalizedNodeFrom, normalizedNodeTo):
             math.cos(lon1 - lon2)) *nauticalMileToKilometers
     )
 
+#zamiana zapisu współrzędnych geograficznych
+#ze stopniowego, na zapis w radianach
 def degreesToRadians(degrees):
     return degrees * math.pi / 180
 
-#TODO: do poprawy to, że nie rozróżnia linii i może się przesiąść, nawet, jeżeli nie musi, bo czas będzie ten sam (np. z K przesiadam się do 144 i jadę do domu)
-#TODO: tutaj skończyłem. Trzeba znaleźć, kiedy będzie najszybsze połączenie -> zaimplementuj algorytm sortowania przez wstawianie
+
+#znajduje najkorzystniejsze połączenie (wyjazd w przyszłości, 
+#jak najszybszy przyjazd, więc jednocześnie jak najmniejszy koszt)
+#łączące wybrany węzeł node z sąsiadem
 def getTimeDiff(node, node_next_normalized_graph):
 
-    nodeFromTime = node['arrivalTime']
-
+    #zmienna, która będzie przechowywać
     #najkorzystniejsze połączenie ogółem
     chosenEdge=None
 
     #szukamy połączeń, które prowadzą do przystanku docelowego
-    #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    #muszą takie istnieć, bo node next to zawsze jeden z sąsiadów noda,
     #a jest sąsiadem, jeżeli ma wspólną krawędź
-    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+    edgesWithTheSameEnd=[]
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
             edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)
@@ -507,17 +572,20 @@ def getTimeDiff(node, node_next_normalized_graph):
     #więc najpierw odsiewamy wszystkie, które są w przyszłości
     edgesWithTheSameEndInTheFutureIndex=None
     for i in range(len(edgesWithTheSameEnd)):
-        if edgesWithTheSameEnd[i]._departure_time()>=nodeFromTime:
+        if edgesWithTheSameEnd[i]._departure_time()>=node['arrivalTime']:
             edgesWithTheSameEndInTheFutureIndex=i
             break
     
     #jeżeli są jakieś w przyszłości tego samego dnia...
     if not edgesWithTheSameEndInTheFutureIndex==None:
         #(ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą)
-        #szukamy linii z najszybszym przyjazdem (ale z tych, których odjazd jest przed północą)
-        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], nodeFromTime)
+        #szukamy linii z najszybszym przyjazdem (ale z tych, 
+        #których odjazd jest przed północą, lecz w przyszłości, 
+        #tzn. po czasie pojawienia się na węźle początkowym krawędzi)
+        #za pomocą funkcji "chooseEdgeWithFastestArrival"
+        chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], node['arrivalTime'])
 
-    #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
+    #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie krawędzie są następnego dnia)
     else:
         chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd)
 
@@ -525,16 +593,24 @@ def getTimeDiff(node, node_next_normalized_graph):
     chosenEdgeArrTime=hourToSeconds(chosenEdge._arrival_time()) #tutaj muszą być posortowane
     return [abs(chosenEdgeArrTime - hourToSeconds(node['arrivalTime'])), chosenEdge]
 
-#TODO: niech printSolution będzie mogło być wykorzystywane przez każdy algorytm
-def printSolution(node, endName):
+#wyświetla najkrótszą ścieżkę (pod względem czasu dotarcia) z węzła początkowego, do końcowego
+#jest to funkcja rekurencyjna
+def printSolutionAStarTime(node, endName):
+
+    #warunek stopu
+    #jeżeli węzeł jest węzłem początkowym, zostaną wyświetlone dane
     if(node['parent']==None):
         print(f" Przystanek: {node['name']}, na przystanku: {node['arrivalTime']}, ", end="")
+    #jeżeli węzeł nie jest początkowym, najpierw funkcja zostanie wywołana dla rodzica,
+    #a potem zostaną wyświetlone dane badanego węzła
     else:
-        printSolution(node['parent'], endName)
+        printSolutionAStarTime(node['parent'], endName)
         print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}')
         print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
+        
+        #jeżeli badany węzłem jest węzłem docelowym, wyświetlone zostaną dane
         if (node['name']==endName):
-            time.sleep(0.1)
+            time.sleep(2)
             print(f'Wartośc f dla tego rozwiazania= {node['f']} s', file=sys.stderr)
             print(f'Czas obliczeń algorytmu= {aStarTimeCalculations * (10**(-9))} s', file=sys.stderr)
 
@@ -542,31 +618,68 @@ def printSolution(node, endName):
 
 ###     algorytm aStarChange
 
+#zmienna, która będzie przechowywać czas obliczeń funkcji
 aStarTimeCalculations=None
+
 #heurystyka to przesiadki (i g też)
 def aStarAlgChange(start, end, graph, startTime): #start i end to znormalizowane węzły
+    #zmienna przechowująca czas rozpoczęcia obliczeń funkcji aStarAlgChange
     aStarAlgStartsCalculations=time.time_ns()
 
+    #w liście otwartej zapisywane będą węzły odwiedzone, 
+    #których wszyscy sąsiedzi nie zostali jeszcze odwiedzeni
     list_open=[]
+
+    #w liście zamkniętej zapisywane będą węzły odwiedzone, 
+    #których wszyscy sąsiedzi zostali już odwiedzeni
     list_closed=[]
 
+    #ustawienie g (kosztu dojścia do danego wierzchołka od startu)
+    #węzła początkowego na wartość 0
+    #(w tej wersji algorytmu g to liczba przesiadek
+    #wykonanych od początku drogi)
     start['g']=0
+
+    #ustawienie h (kosztu dojścia z danego wierzchołka do celu)
+    #węzła początkowego na wartość 0
+    #(w tej wersji algorytmu h to przewidywana liczba przesiadek,
+    #którą trzeba będzie wykonać od danego węzła do węzła docelowego)
     start['h']=0
+
+    #przypisanie wartości funkcji kosztu węzła początkowego
+    #na równą g + h węzła początkowego
     start['f']=start['g']+start['h']
+
+    #przypisanie wartości odległości (w km)
+    #węzła początkowego, od węzła początkowego
+    #(nie w lini prostej, lecz wyznaczoną ścieżką) na 0
     start['howFarFromStart']=0
+
+    #ustawienie czasu pojawienia się na przystanku początkowym
+    #na wartość startTime, przedstawioną za pomocą godziny 
+    #o formacie HH:MM:SS (wykorzystując funkcję "secondsToHour")
     start['arrivalTime']=secondsToHour(startTime)
 
+    #dodanie węzła początkowego do listy otwartej
+    list_open.append(start)
 
-    list_open=[start]
-
+    #dopóki są węzły w liście otwartej
     while len(list_open) > 0:
-        node = None #to będzie znormalizowany węzeł
+
+        #za pomocą node_cost będziemy szukać węzła z listy otwartej
+        #o najmniejszym g, po czym przypiszemy go do zmiennej node
+        node = None
         node_cost=float('inf')
 
+        #szukamy wezła z listy otwartej o najmniejszym g
         for test_node in list_open:
             if (test_node['f']<node_cost):
                 node = test_node
                 node_cost = test_node['f']
+
+        #jeżeli wybrany węzeł (tzn. ten o najmniejszym g z listy otwartej)
+        #jest węzłem końcowym, to znaczy, że algorytm znalazł rozwiązanie,
+        #więc je wyświetla funkcją "printSolution"
         if node['name'] == end['name']:
             aStarAlgEndsCalculations=time.time_ns()
             global aStarTimeCalculations
@@ -575,67 +688,141 @@ def aStarAlgChange(start, end, graph, startTime): #start i end to znormalizowane
             printSolutionAStarChange(node, end['name'])
             break
 
+        #usuwamy wybrany węzeł z listy otwartej
+        #i dodajemy go do listy zamkniętej
         list_open.remove(node)
         list_closed.append(node)
 
-        #tu się zaczynają problemy z sąsiadami, bo info o sąsiadach ma normalized graph, a tam nie ma AstarNodów
-        #tutaj node next ma być AStarNodem, tylko jak go utworzyć?
+        #sprawdzamy każdy węzeł, który jest sąsiadem wybranego węzła
         for node_next_name in node['neighbours']:
-            #szukam po nazwie, bo node_next nie jest AStarNodem
             node_next_normalized_graph=graph[node_next_name]
+
+            #znajdujemy najkorzystniejsze połączenie (wyjazd w przyszłości, 
+            #możliwie bez przesiadki, a jeżeli z przesiadką, to też jak najszybszy przyjazd)
+            #łączące wybrany węzeł node z sąsiadem, za pomocą "getChanges"
             gCh=getChanges(node, node_next_normalized_graph)
-            #WAŻNE: możliwe uproszczenia
-            if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed): #TODO: be able to fin this node
-                node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
-                node_next_normalized_graph['g']=node['g'] + gCh[0] #!!!
-                node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart'] #!!!
-                node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
-                node_next_normalized_graph['f']=node_next_normalized_graph['h'] + node_next_normalized_graph['g'] #!!!
-                node_next_normalized_graph['parent']=node #!!!
-                node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time() #!!!
-                node_next_normalized_graph['edgeId']=gCh[1]._id() #!!!
-                node_next_normalized_graph['departureTime']=gCh[1]._departure_time() #!!!
-                node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}' #!!!
-                #node_next_normalized_graph['arrivalLine']=f'{gCh[1]._company()} {gCh[1]._line()}' #!!!
+            
+            #jeżeli danego sąsiada nie ma jeszcze w liscie otwartej ani zamkniętej (tzn. nie był jeszcze sprawdzony)...
+            if (node_next_normalized_graph not in list_open and node_next_normalized_graph not in list_closed):
                 
+                #zapisujemy w nim (u sąsiada) dane, dotyczące połączenia przychodzacego od wybranego węzła node,
+                #korzystając z funkcji "saveEdgeDataInNextNodeASChange"
+                node_next_normalized_graph=saveEdgeDataInNextNodeASChange(node_next_normalized_graph, node,gCh,graph)
+
+                # node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
+                # node_next_normalized_graph['g']=node['g'] + gCh[0] #!
+                # node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart'] #!!!
+                # node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
+                # node_next_normalized_graph['f']=node_next_normalized_graph['h'] + node_next_normalized_graph['g'] #!!!
+                # node_next_normalized_graph['parent']=node #!
+                # node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time() #!
+                # node_next_normalized_graph['edgeId']=gCh[1]._id() #!
+                # node_next_normalized_graph['departureTime']=gCh[1]._departure_time() #!
+                # node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}' #!
+                
+                #dodajemy sąsiada do listy otwartej
                 list_open.append(node_next_normalized_graph)
             else:
+
+                #jeżeli g sąsiada jest większe, niż suma g wybranego węzłą node i kosztu najkorzystniejszej krawędzi...
                 if(node_next_normalized_graph['g']>node['g'] + gCh[0]):
-                    node_next_normalized_graph['g']=node['g'] + gCh[0]
-                    node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
-                    node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart'] 
-                    node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
-                    node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
-                    node_next_normalized_graph['parent']=node #!!!
-                    node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time() #!!!
-                    node_next_normalized_graph['edgeId']=gCh[1]._id() #!!!
-                    node_next_normalized_graph['departureTime']=gCh[1]._departure_time() #!!!
-                    node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}' #!!!
 
-                    if(node_next_normalized_graph in list_closed): #TODO: trzeba móc odnaleźć tego noda w liście
+                    #zapisujemy w nim (u sąsiada) dane, dotyczące połączenia przychodzacego od wybranego węzła node,
+                #korzystając z funkcji "saveEdgeDataInNextNodeASChange"
+                    node_next_normalized_graph=saveEdgeDataInNextNodeASChange(node_next_normalized_graph, node,gCh,graph)
+
+                    # node_next_normalized_graph['g']=node['g'] + gCh[0]
+                    # node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
+                    # node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart'] 
+                    # node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
+                    # node_next_normalized_graph['f']=node_next_normalized_graph['g']+node_next_normalized_graph['h']
+                    # node_next_normalized_graph['parent']=node #!!!
+                    # node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time() #!!!
+                    # node_next_normalized_graph['edgeId']=gCh[1]._id() #!!!
+                    # node_next_normalized_graph['departureTime']=gCh[1]._departure_time() #!!!
+                    # node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}' #!!!
+                    
+                    #jeżeli sąsiad jest w liscie zamkniętej...
+                    if(node_next_normalized_graph in list_closed):
+                        #dodajemy go do listy otwartej i usuwamy z zamkniętej
                         list_open.append(node_next_normalized_graph)
-                        list_closed.remove(node_next_normalized_graph) #TODO: trzeba móc odnaleźć noda
+                        list_closed.remove(node_next_normalized_graph)
 
+#zapisuje w node_next_normalized_graph dane, 
+#dotyczące połączenia przychodzacego od wybranego węzła node
+def saveEdgeDataInNextNodeASChange(node_next_normalized_graph, node, gCh, graph):
+
+    #ustawiamy g sąsiada na g wybranego węzła node + 
+    #koszt najkorzystniejszego połączenia (tzn. gCh[0])
+    #przy czym koszt, to różnica (w sekundach) między czasem przyjazdu do node,
+    #a czasem przyjazdu do node next
+    node_next_normalized_graph['g']=node['g'] + gCh[0]
+
+    #zapisanie długości trasy (w km) do danego węzła
+    node_next_normalized_graph['howFarFromStart']=node['howFarFromStart'] + gCh[1]._distance()
+
+    #obliczenie współczynnika "g/hFFs", dzięki któremy będziemy mogli
+    #obliczyć heurystykę h
+    node_next_normalized_graph['g/hFFS']=(node_next_normalized_graph['g'])/node_next_normalized_graph['howFarFromStart']
+
+    #obliczenie h danego węzła, za pomocą funkcji "calculateHChange"
+    node_next_normalized_graph['h']=calculateHChange(node_next_normalized_graph, end, graph)
+
+    #ustawienie f sąsiada na g sąsiada + h sąsiada
+    node_next_normalized_graph['f']=node_next_normalized_graph['h'] + node_next_normalized_graph['g']
+
+    #ustawienie sąsiadowi wybranego węzła node, jako rodzica
+    node_next_normalized_graph['parent']=node
+
+    #zapisujemy odpowiednie dane krawędzi do sąsiada
+    node_next_normalized_graph['arrivalTime']=gCh[1]._arrival_time()
+    node_next_normalized_graph['edgeId']=gCh[1]._id()
+    node_next_normalized_graph['departureTime']=gCh[1]._departure_time()
+    node_next_normalized_graph['departureLine']=f'{gCh[1]._company()} {gCh[1]._line()}'
+
+    #zwrócenie sąsiada z naniesionymi zmianami
+    return node_next_normalized_graph
+
+#przewiduje, ile przesiadek zostało do węzła docelowego z danego węzła
 def calculateHChange(node_next_normalized_graph, end, graph):
+
+    #obliczenie odległości (w km) danego węzła od docelowego węzła
     distanceKm=calculateHDistance(node_next_normalized_graph, end)
+
+    #zwrócenie przewidywanej liczby przesiadek
+    #na podstawie współczynnika g/hFFS i odległości
+    #(na podstawie wiedzy, ile przesiadek było na danym dystansie,
+    #można przewidzieć, ile ich będzie na innym dystansie)
     return node_next_normalized_graph['g/hFFS']*distanceKm
 
+#znajduje najkorzystniejsze połączenie (wyjazd w przyszłości, 
+#możliwie bez przesiadki, a jeżeli z przesiadką, to też jak najszybszy przyjazd)
+#łączące wybrany węzeł node z sąsiadem
 def getChanges(node, node_next_normalized_graph):
+    
+    #zmienna, która będzie przechowywać
+    #informację o liczbie przesiadek (max 1 na 1 krawędzi)
     change=0
-    nodeFromTime = node['arrivalTime']
+
+    #zmienna, która będzie przechowywać
+    #najkorzystniejsze połączenie ogółem
     chosenEdge=None
 
     #szukamy połączeń, które prowadzą do przystanku docelowego
-    #muszą takie istnieć, bo node next to zawsze ten z sąsiadów noda,
+    #muszą takie istnieć, bo node next to zawsze jeden z sąsiadów noda,
     #a jest sąsiadem, jeżeli ma wspólną krawędź
-    edgesWithTheSameEnd=[] #TODO: tu się przyda sortowanie przez wstawianie !!!!!!!!!!!!!!!!!!
+    edgesWithTheSameEnd=[]
     for edge in node['edges']:
         if(edge._end_node()._stop_name()==node_next_normalized_graph['name']):
-            edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd) #tutaj nie zależy nam na czasie, a jedynie na tej samej linii
+            #(tutaj nie zależy nam na czasie, a jedynie na tej samej linii)
+            edgesWithTheSameEnd=addToSortedEdgesList(edge, edgesWithTheSameEnd)
 
     #odsiewamy te, które są tą samą linią
     edgesWithTheSameLine=[]
     #dla węzła startowego nie ma żadnej lini, którą przyjechaliśmy, więc tego nie sprawdzamy
+    #(węzeł startowy nie będzie miał "departureLine",
+    #bo węzły zapamiętują dane krawędzi do nich wchodzącej,
+    #a do węzła początkowego żadna krawędź nie wchodzi)
     if(not node['departureLine']==None):
         for edge in edgesWithTheSameEnd:
             if(f'{edge._company()} {edge._line()}'==node['departureLine']): #departureLine, to linia, którą się przyjechało do node (bo kolejne węzły zapamiętują poprzednie krawędzie)
@@ -647,15 +834,18 @@ def getChanges(node, node_next_normalized_graph):
     if len(edgesWithTheSameLine)>0:
         #staramy się wybrać najszybsze z nich, które jest w przyszłości tego samego dnia
         for i in range(len(edgesWithTheSameLine)):
-            if edgesWithTheSameLine[i]._departure_time()>=nodeFromTime:
+            if edgesWithTheSameLine[i]._departure_time()>=node['arrivalTime']:
                 edgesWithTheSameLineInTheFutureIndex=i
                 break
         
         #jeżeli są jakieś w przyszłości tego samego dnia...
         if not edgesWithTheSameLineInTheFutureIndex==None:
-            #ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą
-            #szukamy linii z najszybszym przyjazdem (ale z tych, których odjazd jest przed północą)
-            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameLine[edgesWithTheSameLineInTheFutureIndex:len(edgesWithTheSameLine)], nodeFromTime)
+            #(ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą)
+            #szukamy tej samej linii z najszybszym przyjazdem (ale z tych, 
+            #których odjazd jest przed północą, lecz w przyszłości, 
+            #tzn. po czasie pojawienia się na węźle początkowym krawędzi)
+            #za pomocą funkcji "chooseEdgeWithFastestArrival"
+            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameLine[edgesWithTheSameLineInTheFutureIndex:len(edgesWithTheSameLine)], node['arrivalTime'])
 
         #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
         else:
@@ -670,15 +860,18 @@ def getChanges(node, node_next_normalized_graph):
         #więc najpierw odsiewamy wszystkie, które są w przyszłości
         edgesWithTheSameEndInTheFutureIndex=None
         for i in range(len(edgesWithTheSameEnd)):
-            if edgesWithTheSameEnd[i]._departure_time()>=nodeFromTime:
+            if edgesWithTheSameEnd[i]._departure_time()>=node['arrivalTime']:
                 edgesWithTheSameEndInTheFutureIndex=i
                 break
         
         #jeżeli są jakieś w przyszłości tego samego dnia...
         if not edgesWithTheSameEndInTheFutureIndex==None:
-            #ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą
-            #szukamy linii z najszybszym przyjazdem (ale z tych, których odjazd jest przed północą)
-            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], nodeFromTime)
+            #(ponieważ edgesWithTheSameEnd jest posortowane czasem wyjazdu, pozostałe tablice też będą)
+            #szukamy linii z najszybszym przyjazdem (ale z tych, 
+            #których odjazd jest przed północą, lecz w przyszłości, 
+            #tzn. po czasie pojawienia się na węźle początkowym krawędzi)
+            #za pomocą funkcji "chooseEdgeWithFastestArrival"
+            chosenEdge=chooseEdgeWithFastestArrival(edgesWithTheSameEnd[edgesWithTheSameEndInTheFutureIndex:len(edgesWithTheSameEnd)], node['arrivalTime'])
 
         #jeżeli nie, wybieramy z tych następnego dnia (czyli z całej tablicy, bo wtedy wszystkie edge są następnego dnia)
         else:
@@ -687,15 +880,25 @@ def getChanges(node, node_next_normalized_graph):
     #zwracamy informację o liczbie przesiadek i o wybranym połączeniu
     return [change, chosenEdge]
 
+#wyświetla najkrótszą ścieżkę (pod względem czasu dotarcia) z węzła początkowego, do końcowego
+#jest to funkcja rekurencyjna
 def printSolutionAStarChange(node, endName):
+
+    #warunek stopu
+    #jeżeli węzeł jest węzłem początkowym, zostaną wyświetlone dane
     if(node['parent']==None):
         print(f" Przystanek: {node['name']}, na przystanku: {node['arrivalTime']}, ", end="")
+
+    #jeżeli węzeł nie jest początkowym, najpierw funkcja zostanie wywołana dla rodzica,
+    #a potem zostaną wyświetlone dane badanego węzła
     else:
         printSolutionAStarChange(node['parent'], endName)
         print(f'odjazd: {node['departureTime']} linią {node['departureLine']}, eId: {node['edgeId']}, przesidaki do tej pory: {node['g']}')
         print(f'-> Przystanek: {node['name']}, przyjazd: {node['arrivalTime']}, ', end="")
+
+        #jeżeli badany węzłem jest węzłem docelowym, wyświetlone zostaną dane
         if (node['name']==endName):
-            time.sleep(0.5)
+            time.sleep(2)
             print(f'Wartośc f dla tego rozwiazania= {node['f']}', file=sys.stderr)
             print(f'Czas obliczeń algorytmu= {aStarTimeCalculations*(10**(-9))} s', file=sys.stderr)
 
@@ -778,7 +981,8 @@ def addToSortedEdgesList(edge, edgesToCheck):
     edgesToCheck.append(edge)
     return edgesToCheck
 
-
+#do testów:
+#może wydrukować, jak zbudowany jest graf
 def printWholeGraph(normalizedGraph):
     for node in normalizedGraph:
         print(f'{node}:')
@@ -793,18 +997,28 @@ def printWholeGraph(normalizedGraph):
 
 if __name__=='__main__':
     # printWholeGraph(buildGraphFromCSV('test_data_file.csv'))
+
+    #zbudowanie grafu
     normalizedGraph=buildGraphFromCSV('connection_graph.csv')
+
+    #dalej program działą w pętli, aby móc wyszukiwać połączenia,
+    #bez potrzeby ponownego budowania grafu
     while True:
+
+        #prośba o podanie danych  początkowych
         start=input('Podaj przystanek początkowy: ')
         end=input('Podaj przystanek końcowy: ')
 
         parameter=input('Podaj kryterium optymalizacyjne: td-> dijkstra czas, ta - a* czas, pa- a* przesiadki: ')
 
-        #IMP: kod z gemini konwertujący czas ze stringa w sekundy
         startTime=hourToSeconds(input('Podaj czas wyjazdu: '))
+
+        #blok try excep, na wypadek podania nieprawidłowych danych początkowych
         try:
             startNormalized=normalizedGraph[start]
             endNormalized=normalizedGraph[end]
+
+            #uruchomienie wybranego algorytmu
             if(parameter=='td'):
                 dijkstraAlg(startNormalized, endNormalized, normalizedGraph, startTime)
             if(parameter=='ta'):
@@ -817,6 +1031,8 @@ if __name__=='__main__':
         if(option=='s'):
             break
         else:
+            #w przypadku kontynuowania, przywracamy stan każdego węzła, do pierwotnego stanu
+            #(stanu tuż po zbudowaniu grafu)
             for nodeFrom in normalizedGraph:
                 normalizedGraph[nodeFrom]['f']=None
                 normalizedGraph[nodeFrom]['g']=None
